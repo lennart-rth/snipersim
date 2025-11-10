@@ -1,11 +1,11 @@
-## Load Slice Core implementation for Sniper Simulator
-## Run on HPC cluster
+# Load Slice Core Implementation For The Sniper Hardware Simulator
+## Run Sniper on HPC cluster
+### Build
 ```bash
 cd apptainer
 make   # accept running under fake-root
 make run
 ```
-
 Once in apptainer:
 ```bash
 cd ..
@@ -13,7 +13,7 @@ make
 ```
 Alternatively you can also compile with the flags `USE_SDE=1` or `USE_PIN=1`, but the later doesn't seem to work for me (prob. downloading a wrong/old pin version).
 
-## run FFT example 
+### run FFT example 
 ```bash
 cd test/fft
 make run
@@ -28,6 +28,13 @@ SIFT_RECORDER:0:0] Recorded 1629421 (out of 1838088) instructions
 don't panick! 
 According to https://groups.google.com/g/snipersim/c/nWDhtgjG2NY/m/YkcvoiOHCQAJ this is ok and doesn/t affect the timing of sniper.
 
+# Run Spec CPU2017 Benchmark in Sniper
+The procedure for running spec speed int is like following:
+- download all the zip files under SPEC CPU2017 Integer Speed Suite SimPoint Pinballs in the link(https://github.com/UT-LCA/Scalability-Phase-Simpoint-of-SPEC-CPU2017/releases)
+- ⁠unzip them
+- ⁠For each benchmark, there will be bunch of {simpoint}.address run the sniper with
+
+`./run-sniper {other options} --pinballs={simpoint} --pinplay-addr-trans -d {output dir}`
 
 ---
 
