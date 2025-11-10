@@ -11,10 +11,23 @@ Once in apptainer:
 cd ..
 make
 ```
+Alternatively you can also compile with the flags `USE_SDE=1` or `USE_PIN=1`, but the later doesn't seem to work for me (prob. downloading a wrong/old pin version).
 
 ## run FFT example 
-`cd test/fft`
-`make run`
+```bash
+cd test/fft
+make run
+```
+
+If you get
+```bash
+SIFT_RECORDER:0:0] Recorded 1629421 (out of 1838088) instructions
+[SIFT_RECORDER] Failed to print backtrace.
+[SIFT_RECORDER] Internal exception:Exception Code: ACCESS_INVALID_ADDRESS. Exception Address = 0x7f019412498d. Access Type: UNKNOWN. Access Address = 0x000000000
+```
+don't panick! 
+According to https://groups.google.com/g/snipersim/c/nWDhtgjG2NY/m/YkcvoiOHCQAJ this is ok and doesn/t affect the timing of sniper.
+
 
 ---
 
