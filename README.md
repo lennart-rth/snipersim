@@ -1,3 +1,23 @@
+## Load Slice Core implementation for Sniper Simulator
+## Run on HPC cluster
+```bash
+cd apptainer
+make   # accept running under fake-root
+make run
+```
+
+Once in apptainer:
+```bash
+cd ..
+make
+```
+
+## run FFT example 
+`cd test/fft`
+`make run`
+
+---
+
 # The Sniper Multi-Core Simulator
 
 <img align="left" width="18%" alt="sniper-logo" src="https://github.com/user-attachments/assets/02b344ad-2163-4b4f-abb1-b0a0724b7fa9">
