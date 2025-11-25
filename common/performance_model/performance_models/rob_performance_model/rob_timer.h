@@ -53,6 +53,9 @@ private:
    const bool m_store_to_load_forwarding;
    const bool m_no_address_disambiguation;
    const bool inorder;
+   const bool ooo_load_data;
+   const bool ooo_generate_address;
+   const uint64_t agi_detector_depth;
 
    Core *m_core;
 
@@ -146,6 +149,8 @@ private:
    SubsecondTime doCommit(uint64_t& instructionsExecuted);
 
    void issueInstruction(uint64_t idx, SubsecondTime &next_event);
+
+   void setDependenciesAsAddressGenerating(RobEntry *entry, int level);
 
 public:
 

@@ -60,6 +60,9 @@ RobTimer::RobTimer(
       , perf(_perf)
       , m_cpiCurrentFrontEndStall(NULL)
       , m_mlp_histogram(Sim()->getCfg()->getBoolArray("perf_model/core/rob_timer/mlp_histogram", core->getId()))
+      , ooo_load_data(Sim()->getCfg()->getBoolArray("perf_model/core/rob_timer/ooo_load_data", core->getId()))
+      , ooo_generate_address(Sim()->getCfg()->getBoolArray("perf_model/core/rob_timer/ooo_generate_address", core->getId()))
+      , agi_detector_depth(Sim()->getCfg()->getIntArray("perf_model/core/rob_timer/agi_detector_depth", core->getId()))
 {
 
    registerStatsMetric("rob_timer", core->getId(), "time_skipped", &time_skipped);
@@ -251,6 +254,16 @@ RobTimer::RobEntry *RobTimer::findEntryBySequenceNumber(UInt64 sequenceNumber)
    return entry;
 }
 
+void RobTimer::setDependenciesAsAddressGenerating(RobEntry *entry, int level) {
+   for (int i = 0; i < entry->uop->getDependenciesLength(); i++) {
+      RobEntry *prodEntry = this->findEntryBySequenceNumber(entry->uop->getDependency(i));
+      prodEntry->uop->setAddressGenerating();
+      if (level + 1 < agi_detector_depth) {
+         setDependenciesAsAddressGenerating(prodEntry, level + 1);
+      }
+   }
+}
+
 boost::tuple<uint64_t,SubsecondTime> RobTimer::simulate(const std::vector<DynamicMicroOp*>& insts)
 {
    uint64_t totalInsnExec = 0;
@@ -311,6 +324,10 @@ boost::tuple<uint64_t,SubsecondTime> RobTimer::simulate(const std::vector<Dynami
                break;
             }
          }
+      }
+
+      if (ooo_generate_address && entry->uop->getMicroOp()->isLoad()) {
+         setDependenciesAsAddressGenerating(entry, 0);
       }
 
       // Add ourselves to the dependants list of the uops we depend on
@@ -771,9 +788,23 @@ SubsecondTime RobTimer::doIssue()
       else if (uop->getMicroOp()->isStore() && (!head_of_queue || !store_queue.hasFreeSlot(now)))
          canIssue = false;          // store queue full
 
-      else
+      else if (inorder) {
+         if (ooo_load_data && uop->getMicroOp()->isLoad()) {
+            canIssue = true;
+         }
+         else if (ooo_generate_address && uop->isAddressGenerating()) {
+            canIssue = true;
+         }
+         else if (head_of_queue) {
+            canIssue = true;
+         }
+         else {
+            canIssue = false;
+         }
+      }
+      else {
          canIssue = true;           // issue!
-
+      }
 
       // canIssue already marks issue ports as in use, so do this one last
       if (canIssue && m_rob_contention && ! m_rob_contention->tryIssue(*uop))
@@ -819,10 +850,6 @@ SubsecondTime RobTimer::doIssue()
 
          if (uop->getMicroOp()->isStore() && entry->addressReady > now)
             have_unresolved_store = true;
-
-         if (inorder)
-            // In-order: only issue from head of the ROB
-            break;
       }
 
 

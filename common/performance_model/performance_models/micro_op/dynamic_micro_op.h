@@ -65,6 +65,7 @@ class DynamicMicroOp
 
       // architecture-specific information to be defined in derived classes
 
+      bool is_agi;
 
    public:
 
@@ -148,6 +149,9 @@ class DynamicMicroOp
 
       // More dynamic, architecture-dependent information to be defined by derived classes
       virtual const char* getType() const = 0; // Make this class pure virtual
+
+      bool isAddressGenerating() const { return is_agi; }
+      void setAddressGenerating() { is_agi = true; }
 };
 
 #endif // __DYNAMIC_MICRO_OP_INFO_H
