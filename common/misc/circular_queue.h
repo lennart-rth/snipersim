@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <iterator>
 #include <string.h>
+#include "fixed_types.h"
 
 template <class T> class CircularQueue
 {

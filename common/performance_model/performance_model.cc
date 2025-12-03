@@ -7,6 +7,7 @@
 #include "interval_performance_model.h"
 #include "rob_performance_model.h"
 #include "rob_smt_performance_model.h"
+#include "load_slice_performance_model.h"
 #include "core_manager.h"
 #include "config.hpp"
 #include "stats.h"
@@ -39,6 +40,9 @@ PerformanceModel* PerformanceModel::create(Core* core)
          return new RobPerformanceModel(core);
       else
          return new RobSmtPerformanceModel(core);
+   }
+   else if (type == "loadslice") {
+      return new LoadSlicePerformanceModel(core);
    }
    else
    {
