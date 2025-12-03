@@ -10,6 +10,7 @@ class LoadSlicePerformanceModel : public MicroOpPerformanceModel {
         ~LoadSlicePerformanceModel();
     protected:
         boost::tuple<uint64_t,uint64_t> simulate(const std::vector<DynamicMicroOp*>& uops);
+        void notifyElapsedTimeUpdate();
     private:
         LoadSliceTimer timer;
 };

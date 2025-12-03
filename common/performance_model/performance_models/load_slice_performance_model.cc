@@ -19,3 +19,8 @@ boost::tuple<uint64_t,uint64_t> LoadSlicePerformanceModel::simulate(const std::v
 {
     return timer.simulate(uops);
 }
+
+void LoadSlicePerformanceModel::notifyElapsedTimeUpdate()
+{
+
+}
