@@ -151,7 +151,7 @@ class DynamicMicroOp
 
 
       // For IST-RDT implementation
-      UInt64 getIP() const;
+      Memory::Access getInstructionPointer() const;
 };
 
 #endif // __DYNAMIC_MICRO_OP_INFO_H

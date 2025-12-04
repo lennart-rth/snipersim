@@ -18,7 +18,7 @@ void RegisterDependencyTable::setDependency(const DynamicMicroOp& microOp){
   {
     const uint32_t destinationRegister = microOp.getMicroOp()->getDestinationRegister(i);
     LOG_ASSERT_ERROR(destinationRegister < Sim()->getDecoder()->last_reg(), "Destination register dst[%u] = %u is invalid", i, destinationRegister);
-    producers[destinationRegister] = microOp.getIP();
+    producers[destinationRegister] = microOp.getInstructionPointer().phys;
   }
 }
 

@@ -29,7 +29,7 @@ void InstructionSliceTable::update(const DynamicMicroOp &microOp, const Register
   if(!(microOp.getMicroOp()->isStore() || predict(microOp)))
     return;
 
-  update(microOp.getIP());
+  update(microOp.getInstructionPointer().phys);
 
   for (uint32_t i = 0; i < microOp.getMicroOp()->getSourceRegistersLength(); i++)
   {
@@ -51,7 +51,7 @@ bool InstructionSliceTable::predict(const DynamicMicroOp &microOp) const
   if (microOp.getMicroOp()->isStore())
     return false;
   
-  const IntPtr ip = microOp.getIP();
+  const IntPtr ip = microOp.getInstructionPointer().phys;
   const UInt32 index = IP_TO_INDEX(ip), tag_offset = IP_TO_TAGOFF(ip);
   for (unsigned int i = 0 ; i < NUM_WAYS ; ++i )
   {

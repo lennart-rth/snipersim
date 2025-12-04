@@ -137,8 +137,8 @@ bool DynamicMicroOp::isLongLatencyLoad() const
    return (m_forceLongLatencyLoad || ((cutoff > 0) && (this->execLatency > cutoff)));
 }
 
-UInt64 DynamicMicroOp::getIP() const
+Memory::Access DynamicMicroOp::getInstructionPointer() const
 {
    LOG_ASSERT_ERROR(m_uop, "m_uop is NULL");
-   return m_uop->instructionPointer.address;
+   return m_uop->getInstructionPointer();
 }
