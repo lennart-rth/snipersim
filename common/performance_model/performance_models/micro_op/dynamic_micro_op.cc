@@ -138,3 +138,9 @@ bool DynamicMicroOp::isLongLatencyLoad() const
    // Also, honor the forceLLL request if indicated
    return (m_forceLongLatencyLoad || ((cutoff > 0) && (this->execLatency > cutoff)));
 }
+
+Memory::Access DynamicMicroOp::getInstructionPointer() const
+{
+   LOG_ASSERT_ERROR(m_uop, "m_uop is NULL");
+   return m_uop->getInstructionPointer();
+}
