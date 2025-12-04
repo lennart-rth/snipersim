@@ -20,6 +20,20 @@ class DynamicMicroOp
       // architecture-independent information
       const SubsecondTime m_period;
 
+   // Snapshot of static instruction metadata (from MicroOp)
+   dl::Decoder::decoder_opcode m_opcode;
+   uint16_t m_operand_size;
+   uint16_t m_memory_access_size;
+   Memory::Access m_instructionPointer;
+   bool m_isLoad;
+   bool m_isStore;
+   bool m_isBranchStatic;
+   bool m_isSerializing;
+   bool m_isInterrupt;
+   bool m_isMemBarrier;
+   bool m_isX87;
+   bool m_isWriteback;
+
       /** The sequence number of the microOperation. Unique (per thread) ! */
       uint64_t sequenceNumber;
 
@@ -144,6 +158,20 @@ class DynamicMicroOp
       void setForceLongLatencyLoad(bool forceLLL) { m_forceLongLatencyLoad = forceLLL; }
 
       SubsecondTime getPeriod() const { LOG_ASSERT_ERROR(m_period != SubsecondTime::Zero(), "MicroOp Period is == SubsecondTime::Zero()"); return m_period; }
+
+      // Exposed getters for captured static metadata
+      dl::Decoder::decoder_opcode getOpcode() const { return m_opcode; }
+      uint16_t getOperandSize() const { return m_operand_size; }
+      uint16_t getMemoryAccessSize() const { return m_memory_access_size; }
+      const Memory::Access& getInstructionPointer() const { return m_instructionPointer; }
+      bool isLoadStatic() const { return m_isLoad; }
+      bool isStoreStatic() const { return m_isStore; }
+      bool isBranchStatic() const { return m_isBranchStatic; }
+      bool isSerializingStatic() const { return m_isSerializing; }
+      bool isInterruptStatic() const { return m_isInterrupt; }
+      bool isMemBarrierStatic() const { return m_isMemBarrier; }
+      bool isX87Static() const { return m_isX87; }
+      bool isWritebackStatic() const { return m_isWriteback; }
 
 
       // More dynamic, architecture-dependent information to be defined by derived classes

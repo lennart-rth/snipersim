@@ -36,6 +36,20 @@ DynamicMicroOp::DynamicMicroOp(const MicroOp *uop, const CoreModel *core_model, 
 
    first = m_uop->isFirst();
    last = m_uop->isLast();
+
+   // Capture static metadata from the MicroOp for convenience
+   m_opcode = m_uop->getInstructionOpcode();
+   m_operand_size = m_uop->getOperandSize();
+   m_memory_access_size = m_uop->getMemoryAccessSize();
+   m_instructionPointer = m_uop->getInstructionPointer();
+   m_isLoad = m_uop->isLoad();
+   m_isStore = m_uop->isStore();
+   m_isBranchStatic = m_uop->isBranch();
+   m_isSerializing = m_uop->isSerializing();
+   m_isInterrupt = m_uop->isInterrupt();
+   m_isMemBarrier = m_uop->isMemBarrier();
+   m_isX87 = m_uop->isX87();
+   m_isWriteback = m_uop->isWriteback();
 }
 
 DynamicMicroOp::~DynamicMicroOp()

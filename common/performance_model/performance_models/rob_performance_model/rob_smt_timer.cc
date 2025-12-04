@@ -1285,10 +1285,30 @@ void RobSmtTimer::printRob(smtthread_id_t thread_num)
          std::cout<<std::hex<<e->uop->getMicroOp()->getInstruction()->getAddress()<<std::dec<<": "
                   <<e->uop->getMicroOp()->getInstruction()->getDisassembly();
          if (e->uop->getMicroOp()->isLoad() || e->uop->getMicroOp()->isStore())
-            std::cout<<"  {0x"<<std::hex<<e->uop->getAddress().address<<std::dec<<"}";
+            std::cout<<"  {EA=0x"<<std::hex<<e->uop->getAddress().address<<std::dec<<"}";
       }
       else
          std::cout<<"(dynamic)";
+
+      // Print captured static metadata from DynamicMicroOp
+      {
+         const DynamicMicroOp &du = *e->uop;
+         std::cout
+           << "  | opcode=" << (unsigned)du.getOpcode()
+           << " opSz=" << du.getOperandSize()
+           << " memSz=" << du.getMicroOp()->getMemoryAccessSize()
+           << " ip=0x" << std::hex << du.getInstructionPointer().address << std::dec
+           << " flags=["
+           << (du.isLoadStatic()?"L":"")
+           << (du.isStoreStatic()?"S":"")
+           << (du.isBranchStatic()?"B":"")
+           << (du.isSerializingStatic()?"Z":"")
+           << (du.isInterruptStatic()?"I":"")
+           << (du.isMemBarrierStatic()?"M":"")
+           << (du.isX87Static()?"X87":"")
+           << (du.isWritebackStatic()?"Wb":"")
+           << "]";
+      }
       std::cout<<std::endl;
    }
    if (thread->rob.size() > thread->m_num_in_rob + 16)
