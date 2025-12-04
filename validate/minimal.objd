@@ -1,0 +1,54 @@
+
+minimal.o:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000000000 <main>:
+// minimal.c
+int main() {
+   0:	f3 0f 1e fa          	endbr64 
+   4:	55                   	push   rbp
+   5:	48 89 e5             	mov    rbp,rsp
+    // We point to arbitrary memory addresses. 
+    // volatile ensures the compiler generates actual LOAD/STORE instructions.
+    volatile int *ptr = (int*)0x10000;
+   8:	48 c7 45 f8 00 00 01 	mov    QWORD PTR [rbp-0x8],0x10000
+   f:	00 
+
+    // --- START TRACE ---
+    
+    // 1. LOAD A (Long Latency Event)
+    // In LSC: Goes to B-Queue (or Load Queue)
+    int a = ptr[0]; 
+  10:	48 8b 45 f8          	mov    rax,QWORD PTR [rbp-0x8]
+  14:	8b 00                	mov    eax,DWORD PTR [rax]
+  16:	89 45 ec             	mov    DWORD PTR [rbp-0x14],eax
+
+    // 2. ALU DEPENDENCY (The Stall)
+    // Depends on 'a'. Must wait for Load A.
+    // In LSC: Goes to A-Queue (Main Queue) and STALLS there.
+    int b = a + 1;
+  19:	8b 45 ec             	mov    eax,DWORD PTR [rbp-0x14]
+  1c:	83 c0 01             	add    eax,0x1
+  1f:	89 45 f0             	mov    DWORD PTR [rbp-0x10],eax
+
+    // 3. INDEPENDENT LOAD B (The Bypass)
+    // Does NOT depend on 'a' or 'b'. 
+    // In Standard Core: Blocked by 'b'.
+    // In LSC: Goes to B-Queue and EXECUTES immediately.
+    int c = ptr[1];
+  22:	48 8b 45 f8          	mov    rax,QWORD PTR [rbp-0x8]
+  26:	48 83 c0 04          	add    rax,0x4
+  2a:	8b 00                	mov    eax,DWORD PTR [rax]
+  2c:	89 45 f4             	mov    DWORD PTR [rbp-0xc],eax
+
+    // --- END TRACE ---
+
+    return b + c; // Prevent dead code elimination
+  2f:	8b 55 f0             	mov    edx,DWORD PTR [rbp-0x10]
+  32:	8b 45 f4             	mov    eax,DWORD PTR [rbp-0xc]
+  35:	01 d0                	add    eax,edx
+}
+  37:	5d                   	pop    rbp
+  38:	c3                   	ret    

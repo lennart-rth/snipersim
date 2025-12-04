@@ -19,7 +19,7 @@
 #include <iomanip>
 
 // Define to get per-cycle printout of dispatch, issue, writeback stages
-//#define DEBUG_PERCYCLE
+#define DEBUG_PERCYCLE
 //#define STOP_PERCYCLE
 
 // Define to not skip any cycles, but assert that the skip logic is working fine
@@ -377,6 +377,28 @@ boost::tuple<uint64_t,SubsecondTime> RobTimer::simulate(const std::vector<Dynami
          entry->ready = entry->readyMax;
       }
 
+      // High-level trace: instruction just entered the ROB
+      // This is useful to correlate later DISPATCH/ISSUE/COMMIT events.
+      {
+         unsigned long long cycle = SubsecondTime::divideRounded(now, now.getPeriod());
+         Instruction *insn = entry->uop->getMicroOp()->getInstruction();
+         uint64_t addr = insn ? insn->getAddress() : 0;
+         LOG_PRINT("ROB_TRACE core=%d cycle=%llu stage=ENQUEUE seq=%llu addr=0x%llx",
+                   m_core->getId(),
+                   cycle,
+                   (unsigned long long)entry->uop->getSequenceNumber(),
+                   (unsigned long long)addr);
+
+         // Also print to the console for interactive debugging (limit to core 0 to keep output sane)
+         if (m_core->getId() == 0)
+         {
+            std::cout << "[ROB] cycle " << cycle
+                      << " ENQUEUE  seq=" << entry->uop->getSequenceNumber()
+                      << " addr=0x" << std::hex << addr << std::dec
+                      << std::endl;
+         }
+      }
+
       #ifdef DEBUG_PERCYCLE
          std::cout<<"** simulate: "<< entry->uop->getMicroOp()->toShortString(true) << std::endl << entry->uop->getMicroOp()->toString()<<std::endl;
       #endif
@@ -502,7 +524,6 @@ SubsecondTime RobTimer::doDispatch(SubsecondTime **cpiComponent)
             cpiFrontEnd = &m_cpiRSFull;
             break;
          }
-
          entry->dispatched = now;
          ++m_num_in_rob;
          ++m_rs_entries_used;
@@ -514,6 +535,26 @@ SubsecondTime RobTimer::doDispatch(SubsecondTime **cpiComponent)
          // If uop is already ready, we may need to issue it in the following cycle
          entry->ready = std::max(entry->ready, (now + 1ul).getElapsedTime());
          next_event = std::min(next_event, entry->ready);
+
+         // Trace dispatch event for this uop
+         {
+            unsigned long long cycle = SubsecondTime::divideRounded(now, now.getPeriod());
+            Instruction *insn = uop.getMicroOp()->getInstruction();
+            uint64_t addr = insn ? insn->getAddress() : 0;
+            LOG_PRINT("ROB_TRACE core=%d cycle=%llu stage=DISPATCH seq=%llu addr=0x%llx",
+                      m_core->getId(),
+                      cycle,
+                      (unsigned long long)uop.getSequenceNumber(),
+                      (unsigned long long)addr);
+
+            if (m_core->getId() == 0)
+            {
+               std::cout << "[ROB] cycle " << cycle
+                         << " DISPATCH seq=" << uop.getSequenceNumber()
+                         << " addr=0x" << std::hex << addr << std::dec
+                         << std::endl;
+            }
+         }
 
          #ifdef DEBUG_PERCYCLE
             std::cout<<"DISPATCH "<<entry->uop->getMicroOp()->toShortString()<<std::endl;
@@ -644,6 +685,28 @@ void RobTimer::issueInstruction(uint64_t idx, SubsecondTime &next_event)
    next_event = std::min(next_event, entry->done);
 
    --m_rs_entries_used;
+
+   // Trace issue event for this uop (when it starts executing on a functional unit)
+   {
+      unsigned long long cycle = SubsecondTime::divideRounded(now, now.getPeriod());
+      Instruction *insn = uop.getMicroOp()->getInstruction();
+      uint64_t addr = insn ? insn->getAddress() : 0;
+      LOG_PRINT("ROB_TRACE core=%d cycle=%llu stage=ISSUE seq=%llu addr=0x%llx latency=%llu",
+                m_core->getId(),
+                cycle,
+                (unsigned long long)uop.getSequenceNumber(),
+                (unsigned long long)addr,
+                (unsigned long long)uop.getExecLatency());
+
+      if (m_core->getId() == 0)
+      {
+         std::cout << "[ROB] cycle " << cycle
+                   << " ISSUE    seq=" << uop.getSequenceNumber()
+                   << " addr=0x" << std::hex << addr << std::dec
+                   << " lat=" << uop.getExecLatency()
+                   << std::endl;
+      }
+   }
 
    #ifdef DEBUG_PERCYCLE
       std::cout<<"ISSUE    "<<entry->uop->getMicroOp()->toShortString()<<"   latency="<<uop.getExecLatency()<<std::endl;
@@ -849,6 +912,26 @@ SubsecondTime RobTimer::doCommit(uint64_t& instructionsExecuted)
    {
       RobEntry *entry = &rob.front();
 
+      // Trace commit event for the instruction at the head of the ROB
+      {
+         unsigned long long cycle = SubsecondTime::divideRounded(now, now.getPeriod());
+         Instruction *insn = entry->uop->getMicroOp()->getInstruction();
+         uint64_t addr = insn ? insn->getAddress() : 0;
+         LOG_PRINT("ROB_TRACE core=%d cycle=%llu stage=COMMIT seq=%llu addr=0x%llx",
+                   m_core->getId(),
+                   cycle,
+                   (unsigned long long)entry->uop->getSequenceNumber(),
+                   (unsigned long long)addr);
+
+         if (m_core->getId() == 0)
+         {
+            std::cout << "[ROB] cycle " << cycle
+                      << " COMMIT  seq=" << entry->uop->getSequenceNumber()
+                      << " addr=0x" << std::hex << addr << std::dec
+                      << std::endl;
+         }
+      }
+
       #ifdef DEBUG_PERCYCLE
          std::cout<<"COMMIT   "<<entry->uop->getMicroOp()->toShortString()<<std::endl;
       #endif
@@ -890,6 +973,27 @@ void RobTimer::execute(uint64_t& instructionsExecuted, SubsecondTime& latency)
    instructionsExecuted = 0;
    SubsecondTime *cpiComponent = NULL;
 
+   // Trace each simulated core cycle at which we actually perform work in the pipeline.
+   {
+      unsigned long long cycle = SubsecondTime::divideRounded(now, now.getPeriod());
+      LOG_PRINT("ROB_TRACE core=%d cycle=%llu stage=CYCLE_START rob_size=%llu in_rob=%llu",
+                m_core->getId(),
+                cycle,
+                (unsigned long long)rob.size(),
+                (unsigned long long)m_num_in_rob);
+
+      if (m_core->getId() == 0)
+      {
+         std::cout << "[ROB] cycle " << cycle
+                   << " START   rob_size=" << rob.size()
+                   << " in_rob=" << m_num_in_rob
+                   << std::endl;
+      }
+   }
+
+   if (m_core->getId() == 0)
+      printRob();
+
    #ifdef DEBUG_PERCYCLE
       std::cout<<std::endl;
       std::cout<<"Running cycle "<<SubsecondTime::divideRounded(now, now.getPeriod())<<std::endl;
@@ -914,17 +1018,10 @@ void RobTimer::execute(uint64_t& instructionsExecuted, SubsecondTime& latency)
    SubsecondTime next_issue    = doIssue();
    SubsecondTime next_commit   = doCommit(instructionsExecuted);
 
-
-   #ifdef DEBUG_PERCYCLE
-      #ifdef ASSERT_SKIP
-         if (! will_skip)
-         {
-      #endif
-         printRob();
-      #ifdef ASSERT_SKIP
-         }
-      #endif
-   #endif
+   // After this cycle's pipeline activity, dump the ROB and queue state.
+   // Limit to core 0 to keep console output manageable.
+   if (m_core->getId() == 0)
+      printRob();
 
 
    #ifdef DEBUG_PERCYCLE
