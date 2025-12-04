@@ -307,7 +307,10 @@ boost::tuple<uint64_t,SubsecondTime> RobTimer::simulate(const std::vector<Dynami
       this->registerDependencies->setDependencies(*entry->uop, lowestValidSequenceNumber);
       this->memoryDependencies->setDependencies(*entry->uop, lowestValidSequenceNumber);
       // For IST-RDT implementation
-      this->instructionSliceTable->predict(*entry->uop);
+      if(this->instructionSliceTable->predict(*entry->uop))
+      {
+         entry->uop->setAddressGenerating();
+      }
       this->instructionSliceTable->update(*entry->uop, *this->registerDependencyTable);
       this->registerDependencyTable->setDependency(*entry->uop);
 
@@ -332,11 +335,7 @@ boost::tuple<uint64_t,SubsecondTime> RobTimer::simulate(const std::vector<Dynami
             }
          }
       }
-
-      if (ooo_generate_address && entry->uop->getMicroOp()->isLoad()) {
-         setDependenciesAsAddressGenerating(entry, 0);
-      }
-
+      
       // Add ourselves to the dependants list of the uops we depend on
       uint64_t minProducerDistance = UINT64_MAX;
       m_totalConsumers += 1 ;
@@ -739,137 +738,147 @@ SubsecondTime RobTimer::doIssue()
    if (m_rob_contention)
       m_rob_contention->initCycle(now);
 
-   for(uint64_t i = 0; i < m_num_in_rob; ++i)
-   {
-      RobEntry *entry = &rob.at(i);
-      DynamicMicroOp *uop = entry->uop;
-
-
-      if (entry->done != SubsecondTime::MaxTime())
+   bool main_queue = false;
+   do{
+      for(uint64_t i = 0; i < m_num_in_rob; ++i)
       {
-         next_event = std::min(next_event, entry->done);
-         continue;                     // already done
-      }
+         RobEntry *entry = &rob.at(i);
+         DynamicMicroOp *uop = entry->uop;
+         
+         // Skip instructions that don't belong to this queue
+         if(uop->isAddressGenerating() ^ main_queue)
+            continue;
 
-      next_event = std::min(next_event, entry->ready);
-
-
-      // See if we can issue this instruction
-
-      bool canIssue = false;
-
-      if (entry->ready > now)
-         canIssue = false;          // blocked by dependency
-
-      else if ((no_more_load && uop->getMicroOp()->isLoad()) || (no_more_store && uop->getMicroOp()->isStore()))
-         canIssue = false;          // blocked by mfence
-
-      else if (uop->getMicroOp()->isSerializing())
-      {
-         if (head_of_queue && last_store_done <= now)
-            canIssue = true;
-         else
-            break;
-      }
-
-      else if (uop->getMicroOp()->isMemBarrier())
-      {
-         if (head_of_queue && last_store_done <= now)
-            canIssue = true;
-         else
-            // Don't issue any memory operations following a memory barrier
-            no_more_load = no_more_store = true;
-            // FIXME: L/SFENCE
-      }
-
-      else if (!m_rob_contention && num_issued == dispatchWidth)
-         canIssue = false;          // no issue contention: issue width == dispatch width
-
-      else if (uop->getMicroOp()->isLoad() && !load_queue.hasFreeSlot(now))
-         canIssue = false;          // load queue full
-
-      else if (uop->getMicroOp()->isLoad() && m_no_address_disambiguation && have_unresolved_store)
-         canIssue = false;          // preceding store with unknown address
-
-      else if (uop->getMicroOp()->isStore() && (!head_of_queue || !store_queue.hasFreeSlot(now)))
-         canIssue = false;          // store queue full
-
-      else if (inorder) {
-         if (ooo_load_data && uop->getMicroOp()->isLoad()) {
-            canIssue = true;
+         if (entry->done != SubsecondTime::MaxTime())
+         {
+            next_event = std::min(next_event, entry->done);
+            continue;                     // already done
          }
-         else if (ooo_generate_address && uop->isAddressGenerating()) {
-            canIssue = true;
+
+         next_event = std::min(next_event, entry->ready);
+
+
+         // See if we can issue this instruction
+
+         bool canIssue = false;
+
+         if (entry->ready > now)
+            canIssue = false;          // blocked by dependency
+
+         else if ((no_more_load && uop->getMicroOp()->isLoad()) || (no_more_store && uop->getMicroOp()->isStore()))
+            canIssue = false;          // blocked by mfence
+
+         else if (uop->getMicroOp()->isSerializing())
+         {
+            if (head_of_queue && last_store_done <= now)
+               canIssue = true;
+            else
+               goto LOOP_EXIT;
          }
-         else if (head_of_queue) {
-            canIssue = true;
+
+         else if (uop->getMicroOp()->isMemBarrier())
+         {
+            if (head_of_queue && last_store_done <= now)
+               canIssue = true;
+            else
+               // Don't issue any memory operations following a memory barrier
+               no_more_load = no_more_store = true;
+               // FIXME: L/SFENCE
+         }
+
+         else if (!m_rob_contention && num_issued == dispatchWidth)
+            canIssue = false;          // no issue contention: issue width == dispatch width
+
+         else if (uop->getMicroOp()->isLoad() && !load_queue.hasFreeSlot(now))
+            canIssue = false;          // load queue full
+
+         else if (uop->getMicroOp()->isLoad() && m_no_address_disambiguation && have_unresolved_store)
+            canIssue = false;          // preceding store with unknown address
+
+         else if (uop->getMicroOp()->isStore() && (!head_of_queue || !store_queue.hasFreeSlot(now)))
+            canIssue = false;          // store queue full
+
+         else if (inorder) {
+            if (ooo_load_data && uop->getMicroOp()->isLoad()) {
+               canIssue = true;
+            }
+            else if (ooo_generate_address && uop->isAddressGenerating()) {
+               canIssue = true;
+            }
+            else if (head_of_queue) {
+               canIssue = true;
+            }
+            else {
+               canIssue = false;
+            }
          }
          else {
-            canIssue = false;
+            canIssue = true;           // issue!
          }
-      }
-      else {
-         canIssue = true;           // issue!
-      }
 
-      // canIssue already marks issue ports as in use, so do this one last
-      if (canIssue && m_rob_contention && ! m_rob_contention->tryIssue(*uop))
-         canIssue = false;          // blocked by structural hazard
+         // canIssue already marks issue ports as in use, so do this one last
+         if (canIssue && m_rob_contention && ! m_rob_contention->tryIssue(*uop))
+            canIssue = false;          // blocked by structural hazard
 
 
-      if (canIssue)
-      {
-         num_issued++;
-         issueInstruction(i, next_event);
-
-         // Calculate memory-level parallelism (MLP) for long-latency loads (but ignore overlapped misses)
-         if (uop->getMicroOp()->isLoad() && uop->isLongLatencyLoad() && uop->getDCacheHitWhere() != HitWhere::L1_OWN)
+         if (canIssue)
          {
-            if (m_lastAccountedMemoryCycle < now) m_lastAccountedMemoryCycle = now;
+            num_issued++;
+            issueInstruction(i, next_event);
 
-            SubsecondTime done = std::max( now.getElapsedTime(), entry->done );
-            // Ins will be outstanding for until it is done. By account beforehand I don't need to
-            // worry about fast-forwarding simulations
-            m_outstandingLongLatencyInsns += (done - now);
-
-            // Only account for the cycles that have not yet been accounted for by other long
-            // latency misses (don't account cycles twice).
-            if ( done > m_lastAccountedMemoryCycle )
+            // Calculate memory-level parallelism (MLP) for long-latency loads (but ignore overlapped misses)
+            if (uop->getMicroOp()->isLoad() && uop->isLongLatencyLoad() && uop->getDCacheHitWhere() != HitWhere::L1_OWN)
             {
-               m_outstandingLongLatencyCycles += done - m_lastAccountedMemoryCycle;
-               m_lastAccountedMemoryCycle = done;
+               if (m_lastAccountedMemoryCycle < now) m_lastAccountedMemoryCycle = now;
+
+               SubsecondTime done = std::max( now.getElapsedTime(), entry->done );
+               // Ins will be outstanding for until it is done. By account beforehand I don't need to
+               // worry about fast-forwarding simulations
+               m_outstandingLongLatencyInsns += (done - now);
+
+               // Only account for the cycles that have not yet been accounted for by other long
+               // latency misses (don't account cycles twice).
+               if ( done > m_lastAccountedMemoryCycle )
+               {
+                  m_outstandingLongLatencyCycles += done - m_lastAccountedMemoryCycle;
+                  m_lastAccountedMemoryCycle = done;
+               }
+
+               #ifdef ASSERT_SKIP
+               LOG_ASSERT_ERROR( m_outstandingLongLatencyInsns >= m_outstandingLongLatencyCycles, "MLP calculation is wrong: MLP cannot be < 1!"  );
+               #endif
             }
 
+
             #ifdef ASSERT_SKIP
-            LOG_ASSERT_ERROR( m_outstandingLongLatencyInsns >= m_outstandingLongLatencyCycles, "MLP calculation is wrong: MLP cannot be < 1!"  );
+               LOG_ASSERT_ERROR(will_skip == false, "Cycle would have been skipped but stuff happened");
             #endif
+         }
+         else
+         {
+            head_of_queue = false;     // Subsequent instructions are not at the head of the ROB
+
+            if (uop->getMicroOp()->isStore() && entry->addressReady > now)
+               have_unresolved_store = true;
          }
 
 
-         #ifdef ASSERT_SKIP
-            LOG_ASSERT_ERROR(will_skip == false, "Cycle would have been skipped but stuff happened");
-         #endif
+         if (m_rob_contention)
+         {
+            if (m_rob_contention->noMore())
+               goto LOOP_EXIT ;
+         }
+         else
+         {
+            if (num_issued == dispatchWidth)
+               goto LOOP_EXIT ;
+         }
       }
-      else
-      {
-         head_of_queue = false;     // Subsequent instructions are not at the head of the ROB
 
-         if (uop->getMicroOp()->isStore() && entry->addressReady > now)
-            have_unresolved_store = true;
-      }
+      main_queue = !main_queue;
+   } while (main_queue);
 
-
-      if (m_rob_contention)
-      {
-         if (m_rob_contention->noMore())
-            break;
-      }
-      else
-      {
-         if (num_issued == dispatchWidth)
-            break;
-      }
-   }
+   LOOP_EXIT:;
 
    return next_event;
 }

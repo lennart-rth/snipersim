@@ -150,14 +150,11 @@ class DynamicMicroOp
       // More dynamic, architecture-dependent information to be defined by derived classes
       virtual const char* getType() const = 0; // Make this class pure virtual
 
-<<<<<<< HEAD
       bool isAddressGenerating() const { return is_agi; }
       void setAddressGenerating() { is_agi = true; }
-=======
 
       // For IST-RDT implementation
       Memory::Access getInstructionPointer() const;
->>>>>>> IST-RDT
 };
 
 #endif // __DYNAMIC_MICRO_OP_INFO_H
