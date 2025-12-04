@@ -207,7 +207,7 @@ struct MicroOp
 
    bool isExecute() const { return uop_type == UOP_EXECUTE; }
 
-   bool isWriteback() const { return decodedInstruction->is_writeback(); }
+   bool isWriteback() const { return decodedInstruction && decodedInstruction->is_writeback(); }
 
    uop_type_t getType() const { return uop_type; }
 

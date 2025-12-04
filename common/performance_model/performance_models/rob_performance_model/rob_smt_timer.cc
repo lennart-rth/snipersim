@@ -1293,10 +1293,10 @@ void RobSmtTimer::printRob(smtthread_id_t thread_num)
       // Print captured static metadata from DynamicMicroOp
       {
          const DynamicMicroOp &du = *e->uop;
-         std::cout
-           << "  | opcode=" << (unsigned)du.getOpcode()
+             std::cout
+                << "  | " << Sim()->getDecoder()->inst_name(du.getOpcode())
            << " opSz=" << du.getOperandSize()
-           << " memSz=" << du.getMicroOp()->getMemoryAccessSize()
+                << " memSz=" << du.getMicroOp()->getMemoryAccessSize()
            << " ip=0x" << std::hex << du.getInstructionPointer().address << std::dec
            << " flags=["
            << (du.isLoadStatic()?"L":"")
@@ -1317,6 +1317,9 @@ void RobSmtTimer::printRob(smtthread_id_t thread_num)
 
 void RobSmtTimer::printRob()
 {
+   // Suppress ROB printing when logging is disabled to reduce noise
+   if (!Log::getSingleton()->isLoggingEnabled())
+      return;
    std::cout<<"** ROB state @ "<<now<<std::endl;
    std::cout<<"   RS entries: "<<m_rs_entries_used<<std::endl;
    std::cout<<"   Outstanding loads: "<<load_queue.getNumUsed(now)<<"  stores: "<<store_queue.getNumUsed(now)<<std::endl;

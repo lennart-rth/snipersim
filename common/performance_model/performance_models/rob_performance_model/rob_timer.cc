@@ -1085,6 +1085,9 @@ void RobTimer::countOutstandingMemop(SubsecondTime time)
 
 void RobTimer::printRob()
 {
+   // Suppress ROB printing when logging is disabled to reduce noise
+   if (!Log::getSingleton()->isLoggingEnabled())
+      return;
    std::cout<<"** ROB state @ "<<SubsecondTime::divideRounded(now, now.getPeriod())<<"  size("<<m_num_in_rob<<") total("<<rob.size()<<")"<<std::endl;
    if (frontend_stalled_until > now)
    {
@@ -1147,10 +1150,10 @@ void RobTimer::printRob()
       // Print captured static metadata from DynamicMicroOp
       {
          const DynamicMicroOp &du = *e->uop;
-         std::cout
-           << "  | opcode=" << (unsigned)du.getOpcode()
+             std::cout
+                << "  | " << Sim()->getDecoder()->inst_name(du.getOpcode())
            << " opSz=" << du.getOperandSize()
-           << " memSz=" << du.getMicroOp()->getMemoryAccessSize()
+                << " memSz=" << du.getMicroOp()->getMemoryAccessSize()
            << " ip=0x" << std::hex << du.getInstructionPointer().address << std::dec
            << " flags=["
            << (du.isLoadStatic()?"L":"")

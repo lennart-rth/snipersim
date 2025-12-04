@@ -28,6 +28,40 @@ SIFT_RECORDER:0:0] Recorded 1629421 (out of 1838088) instructions
 don't panick! 
 According to https://groups.google.com/g/snipersim/c/nWDhtgjG2NY/m/YkcvoiOHCQAJ this is ok and doesn/t affect the timing of sniper.
 
+## Validate Benchmarks
+
+Folder: `validate/` has two mini benchmarks made to be human comprehendable:
+`minimal` and `extensive`
+
+Also see [validate readme](validate/readme.md)
+
+### Run inside Apptainer
+```bash
+make -j
+./run-sniper -c haswell -n 1 --roi -- ./validate/minimal
+# or
+./run-sniper -c haswell -n 1 --roi -- ./validate/extensive
+```
+
+### Sample Output (ROB excerpt)
+```
+[  3]  READY@+0   457  LOAD   484378: {EA=0x4ab510}  | MOVSXD opSz=64 memSz=4 ip=0x484378 flags=[L]
+[ 10]  DEPS 463   464  EXEC   48438d:                   | JNZ    opSz=64 memSz=0 ip=0x48438d flags=[B]
+[ 15]  DEPS 461   469  STORE  4843a3: {EA=0x7ffe...}    | MOV    opSz=8  memSz=1 ip=0x4843a3 flags=[S]
+```
+
+### Column Legend
+- `[index]`: Display index in the ROB view.
+- `READY@+N` / `DEPS ...`: Readiness or dependency list (seq IDs).
+- `seq`: Dynamic micro-op sequence number (per thread).
+- `EXEC|LOAD|STORE`: Micro-op type.
+- `address:`: Instruction pointer; memory ops also show `{EA=...}`.
+- `mnemonic`: Decoded instruction name.
+- `opSz`: Operand width in bits.
+- `memSz`: Bytes accessed by this uop (0 if none).
+- `ip`: Instruction pointer (redundant but handy in logs).
+- `flags`: Attributes — `L` load, `S` store, `B` branch, `Z` serializing, `I` interrupt, `M` memory barrier, `X87` x87, `Wb` writeback.
+
 # Run Spec CPU2017 Benchmark in Sniper
 The procedure for running spec speed int is like following:
 - download all the zip files under SPEC CPU2017 Integer Speed Suite SimPoint Pinballs in the link(https://github.com/UT-LCA/Scalability-Phase-Simpoint-of-SPEC-CPU2017/releases)
