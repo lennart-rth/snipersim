@@ -57,6 +57,9 @@ RobTimer::RobTimer(
       , time_skipped(SubsecondTime::Zero())
       , registerDependencies(new RegisterDependencies())
       , memoryDependencies(new MemoryDependencies())
+      // For IST-RDT implementation
+      , registerDependencyTable(new RegisterDependencyTable())
+      , instructionSliceTable(new InstructionSliceTable())
       , perf(_perf)
       , m_cpiCurrentFrontEndStall(NULL)
       , m_mlp_histogram(Sim()->getCfg()->getBoolArray("perf_model/core/rob_timer/mlp_histogram", core->getId()))
@@ -290,6 +293,10 @@ boost::tuple<uint64_t,SubsecondTime> RobTimer::simulate(const std::vector<Dynami
       }
       this->registerDependencies->setDependencies(*entry->uop, lowestValidSequenceNumber);
       this->memoryDependencies->setDependencies(*entry->uop, lowestValidSequenceNumber);
+      // For IST-RDT implementation
+      this->instructionSliceTable->predict(*entry->uop);
+      this->instructionSliceTable->update(*entry->uop, *this->registerDependencyTable);
+      this->registerDependencyTable->setDependency(*entry->uop);
 
       if (m_store_to_load_forwarding && entry->uop->getMicroOp()->isLoad())
       {

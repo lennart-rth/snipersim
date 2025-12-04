@@ -43,7 +43,9 @@ Windows::Windows(int window_size, bool doFunctionalUnitContention, Core *core, c
    , m_do_functional_unit_contention(doFunctionalUnitContention)
    , m_register_dependencies(new RegisterDependencies())
    , m_memory_dependencies(new MemoryDependencies())
+   // For IST-RDT implementation
    , m_register_dependency_table(new RegisterDependencyTable())
+   , m_instruction_slice_table(new InstructionSliceTable())
 {
    m_window_size = window_size;
    m_double_window_size = 2*window_size;
@@ -68,6 +70,7 @@ Windows::~Windows()
    delete m_register_dependencies;
    delete m_memory_dependencies;
    delete m_register_dependency_table;
+   delete m_instruction_slice_table;
 }
 
 void Windows::clear()

@@ -75,6 +75,9 @@ private:
 
    RegisterDependencies* const registerDependencies;
    MemoryDependencies* const memoryDependencies;
+   // For IST-RDT implementation
+   RegisterDependencyTable* const registerDependencyTable;
+   InstructionSliceTable* const instructionSliceTable;
 
    int addressMask;
 
