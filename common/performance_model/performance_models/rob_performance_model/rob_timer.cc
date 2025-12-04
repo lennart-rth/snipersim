@@ -473,8 +473,7 @@ SubsecondTime RobTimer::doDispatch(SubsecondTime **cpiComponent)
          //if (instrs_dispatched > 0 && !uop.isLast())
          //   break;
 
-         bool iCacheMiss = (uop.getICacheHitWhere() != HitWhere::L1I);
-         if (iCacheMiss)
+         if (uop.getICacheHitWhere() != HitWhere::L1I)
          {
             if (in_icache_miss)
             {

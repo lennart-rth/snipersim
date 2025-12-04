@@ -148,6 +148,10 @@ class DynamicMicroOp
 
       // More dynamic, architecture-dependent information to be defined by derived classes
       virtual const char* getType() const = 0; // Make this class pure virtual
+
+
+      // For IST-RDT implementation
+      UInt64 getIP() const;
 };
 
 #endif // __DYNAMIC_MICRO_OP_INFO_H
