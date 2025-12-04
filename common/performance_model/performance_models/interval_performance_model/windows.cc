@@ -43,6 +43,7 @@ Windows::Windows(int window_size, bool doFunctionalUnitContention, Core *core, c
    , m_do_functional_unit_contention(doFunctionalUnitContention)
    , m_register_dependencies(new RegisterDependencies())
    , m_memory_dependencies(new MemoryDependencies())
+   , m_register_dependency_table(new RegisterDependencyTable())
 {
    m_window_size = window_size;
    m_double_window_size = 2*window_size;
@@ -66,6 +67,7 @@ Windows::~Windows()
    delete[] m_exec_time_map;
    delete m_register_dependencies;
    delete m_memory_dependencies;
+   delete m_register_dependency_table;
 }
 
 void Windows::clear()
@@ -79,6 +81,7 @@ void Windows::clear()
 
    m_register_dependencies->clear();
    m_memory_dependencies->clear();
+   m_register_dependency_table->clear();
 
    m_window_head__old_window_tail = m_window_tail = m_old_window_head = 0;
    m_window_length = m_old_window_length = 0;
@@ -153,6 +156,7 @@ void Windows::add(DynamicMicroOp* micro_op)
    uint64_t lowestValidSequenceNumber = getInstructionByIndex(m_old_window_head).getSequenceNumber();
    m_register_dependencies->setDependencies(*micro_op, lowestValidSequenceNumber);
    m_memory_dependencies->setDependencies(*micro_op, lowestValidSequenceNumber);
+   m_register_dependency_table->setDependency(*micro_op);
 }
 
 Windows::WindowEntry& Windows::getInstructionByIndex(int index) const
