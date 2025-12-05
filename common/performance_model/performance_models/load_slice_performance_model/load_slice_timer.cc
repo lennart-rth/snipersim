@@ -6,7 +6,7 @@ void ScoreBoardEntry::init(DynamicMicroOp *_uop, uint64_t sequenceNumber) {
     dispatched = SubsecondTime::MaxTime();
     issued = SubsecondTime::MaxTime();
     isReady = false;
-    readyToIssue = SubsecondTime::MaxTime();
+    readyToIssue = SubsecondTime::Zero();
     readyToForward = SubsecondTime::MaxTime();
     readyToCommit = SubsecondTime::MaxTime();
 }
