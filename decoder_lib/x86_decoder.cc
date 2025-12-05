@@ -58,6 +58,8 @@ void X86Decoder::decode(DecodedInst * inst)
   assert(res_decode == XED_ERROR_NONE);
 
   inst->set_already_decoded(true);
+  
+  ((X86DecodedInst *)inst)->set_disassembly();
 }
 
 void X86Decoder::decode(DecodedInst * inst, dl_isa isa)

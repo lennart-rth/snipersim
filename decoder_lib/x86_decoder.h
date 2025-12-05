@@ -84,9 +84,9 @@ class X86DecodedInst : public DecodedInst
     virtual bool has_modifiers() const override;
     virtual bool is_mem_pair() const override;
     virtual bool is_writeback() const override { return false; }
+    void set_disassembly();
 
   private:
-    void set_disassembly();
     xed_decoded_inst_t xed_inst;
 
 };
