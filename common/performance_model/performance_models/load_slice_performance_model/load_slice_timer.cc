@@ -16,7 +16,8 @@ LoadSliceTimer::LoadSliceTimer(
     int dispatchWidth,
     int windowSize
 )
-: now(core->getDvfsDomain()) 
+: core(core)
+, now(core->getDvfsDomain()) 
 , dispatchWidth(dispatchWidth)
 , issueWidth(dispatchWidth)
 , commitWidth(dispatchWidth)
@@ -238,7 +239,27 @@ void LoadSliceTimer::issue() {
     }
 }
 
+#include "instruction.h"
+
 void LoadSliceTimer::issueInstruction(ScoreBoardEntry *entry) {
+    // perform memory access - taken from ROB performance model
+    if ((entry->uop->getMicroOp()->isLoad() || entry->uop->getMicroOp()->isStore())
+      && entry->uop->getDCacheHitWhere() == HitWhere::UNKNOWN) {
+        MemoryResult res = core->accessMemory(
+            Core::NONE,
+            entry->uop->getMicroOp()->isLoad() ? Core::READ : Core::WRITE,
+            entry->uop->getAddress().address,
+            NULL,
+            entry->uop->getMicroOp()->getMemoryAccessSize(),
+            Core::MEM_MODELED_RETURN,
+            entry->uop->getMicroOp()->getInstruction() ? entry->uop->getMicroOp()->getInstruction()->getAddress() : static_cast<uint64_t>(NULL),
+            now.getElapsedTime()
+        );
+        uint64_t latency = SubsecondTime::divideRounded(res.latency, now.getPeriod());
+        entry->uop->setExecLatency(entry->uop->getExecLatency() + latency);
+        entry->uop->setDCacheHitWhere(res.hit_where);
+   }
+
     entry->issued = now;
     // can be forwarded right after it finishes execution
     entry->readyToForward = now + entry->uop->getExecLatency();
@@ -322,8 +343,6 @@ int LoadSliceTimer::advance() {
     now += skip;
     return SubsecondTime::divideRounded(skip, now.getPeriod());
 }
-
-#include "instruction.h"
 
 void LoadSliceTimer::print() {
     printf("now=%d\n", SubsecondTime::divideRounded(now, now.getPeriod()));

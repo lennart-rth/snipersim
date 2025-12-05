@@ -27,6 +27,7 @@ class ScoreBoardEntry {
 
 class LoadSliceTimer {
     private:
+        Core *core;
         ComponentTime now;
         SubsecondTime nextDispatch;
         SubsecondTime nextIssue;
