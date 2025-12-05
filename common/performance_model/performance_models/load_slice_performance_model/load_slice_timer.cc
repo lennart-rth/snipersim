@@ -1,5 +1,8 @@
 #include "load_slice_timer.h"
 
+#include "config.hpp"
+#include "instruction.h"
+
 void ScoreBoardEntry::init(DynamicMicroOp *_uop, uint64_t sequenceNumber) {
     uop = _uop;
     uop->setSequenceNumber(sequenceNumber);
@@ -26,6 +29,8 @@ LoadSliceTimer::LoadSliceTimer(
 , mainQueue(256)
 , bypassQueue(256)
 , mispredictionPenalty(8)
+, bypassLoads(Sim()->getCfg()->getBool("perf_model/core/load_slice_timer/bypass_loads"))
+, bypassStores(Sim()->getCfg()->getBool("perf_model/core/load_slice_timer/bypass_stores"))
 , registerProducerMap(Sim()->getDecoder()->last_reg())
 , memoryProducerMap()
 {
@@ -120,8 +125,14 @@ boost::tuple<uint64_t,uint64_t> LoadSliceTimer::simulate(const std::vector<Dynam
     }
 }
 
-bool ScoreBoardEntry::shouldBypass() {
-    return uop->getMicroOp()->isLoad();// || uop->getMicroOp()->isStore();
+bool LoadSliceTimer::shouldBypass(ScoreBoardEntry *entry) {
+    if (bypassLoads && entry->uop->getMicroOp()->isLoad()) {
+        return true;
+    }
+    if (bypassStores && entry->uop->getMicroOp()->isStore()) {
+        return true;
+    }
+    return false;
 }
 
 void LoadSliceTimer::dispatch() {
@@ -168,7 +179,7 @@ void LoadSliceTimer::dispatch() {
         }
 
         // push to the queue
-        if (entry->shouldBypass()) {
+        if (shouldBypass(entry)) {
             bypassQueue.push(entry);
         }
         else {
@@ -238,8 +249,6 @@ void LoadSliceTimer::issue() {
         mainQueue.pop();
     }
 }
-
-#include "instruction.h"
 
 void LoadSliceTimer::issueInstruction(ScoreBoardEntry *entry) {
     // perform memory access - taken from ROB performance model

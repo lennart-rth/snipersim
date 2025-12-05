@@ -22,7 +22,6 @@ class ScoreBoardEntry {
         void init(DynamicMicroOp *_uop, uint64_t sequence_number);
         bool isDispatched() { return dispatched != SubsecondTime::MaxTime(); }
         bool isIssued() { return issued != SubsecondTime::MaxTime(); }
-        bool shouldBypass();
 };
 
 class LoadSliceTimer {
@@ -47,6 +46,9 @@ class LoadSliceTimer {
         const uint64_t windowSize;
         const uint64_t mispredictionPenalty;
 
+        const bool bypassLoads;
+        const bool bypassStores;
+
         uint64_t nextSequenceNumber;
         uint64_t headSequenceNumber;
         uint64_t scoreBoardCount;
@@ -63,6 +65,7 @@ class LoadSliceTimer {
         ~LoadSliceTimer();
         ScoreBoardEntry *findEntryBySequenceNumber(uint64_t sequenceNumber);
         boost::tuple<uint64_t, uint64_t> simulate(const std::vector<DynamicMicroOp *> &insts);
+        bool shouldBypass(ScoreBoardEntry *entry);
         void dispatch();
         void issue();
         void issueInstruction(ScoreBoardEntry *entry);
