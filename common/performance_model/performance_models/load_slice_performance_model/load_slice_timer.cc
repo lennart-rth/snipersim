@@ -322,3 +322,18 @@ int LoadSliceTimer::advance() {
     now += skip;
     return SubsecondTime::divideRounded(skip, now.getPeriod());
 }
+
+#include "instruction.h"
+
+void LoadSliceTimer::print() {
+    printf("now=%d\n", SubsecondTime::divideRounded(now, now.getPeriod()));
+    printf("mainQueue: size=%d\n", mainQueue.size());
+    for (ScoreBoardEntry *entry : mainQueue) {
+        printf("%d\t%d\t%d\t%s\n",
+            entry->uop->getSequenceNumber(),
+            entry->uop->getDependenciesLength(),
+            entry->isReady ? SubsecondTime::divideRounded(entry->readyToIssue, now.getPeriod()) : -1,
+            entry->uop->getMicroOp()->getInstruction() ? entry->uop->getMicroOp()->getInstruction()->getDisassembly().c_str() : "?"
+        );
+    }
+}

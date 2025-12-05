@@ -67,6 +67,7 @@ class LoadSliceTimer {
         void issueInstruction(ScoreBoardEntry *entry);
         int commit();
         int advance();
+        void print();
 };
 
 #endif
