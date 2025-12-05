@@ -49,6 +49,9 @@ class LoadSliceTimer {
         uint64_t nextSequenceNumber;
         uint64_t headSequenceNumber;
         uint64_t scoreBoardCount;
+
+        std::vector<uint64_t> registerProducerMap;
+        std::unordered_map<uint64_t,uint64_t> memoryProducerMap;
     
     public:
         LoadSliceTimer(

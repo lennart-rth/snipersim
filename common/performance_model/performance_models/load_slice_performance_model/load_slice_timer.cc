@@ -25,6 +25,8 @@ LoadSliceTimer::LoadSliceTimer(
 , mainQueue(256)
 , bypassQueue(256)
 , mispredictionPenalty(8)
+, registerProducerMap(Sim()->getDecoder()->last_reg())
+, memoryProducerMap()
 {
     nextIssue = SubsecondTime::MaxTime();
     nextCommit = SubsecondTime::MaxTime();
@@ -38,9 +40,6 @@ LoadSliceTimer::LoadSliceTimer(
 LoadSliceTimer::~LoadSliceTimer() {
 
 }
-
-std::vector<uint64_t> registerProducerMap(Sim()->getDecoder()->last_reg());
-std::unordered_map<uint64_t,uint64_t> memoryProducerMap;
 
 ScoreBoardEntry *LoadSliceTimer::findEntryBySequenceNumber(uint64_t sequenceNumber) {
     return &scoreBoard[sequenceNumber - scoreBoard[0].uop->getSequenceNumber()];
