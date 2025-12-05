@@ -121,7 +121,7 @@ boost::tuple<uint64_t,uint64_t> LoadSliceTimer::simulate(const std::vector<Dynam
 }
 
 bool ScoreBoardEntry::shouldBypass() {
-    return uop->getMicroOp()->isLoad() || uop->getMicroOp()->isStore();
+    return uop->getMicroOp()->isLoad();// || uop->getMicroOp()->isStore();
 }
 
 void LoadSliceTimer::dispatch() {
