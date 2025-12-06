@@ -26,7 +26,7 @@ void InstructionSliceTable::update(const IntPtr ip)
 
 void InstructionSliceTable::update(const DynamicMicroOp &microOp, const RegisterDependencyTable &regDepTable)
 {
-  if(!(microOp.getMicroOp()->isStore() || predict(microOp)))
+  if(!(predict(microOp)))
     return;
 
   update(microOp.getIP());
