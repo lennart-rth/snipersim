@@ -3,8 +3,8 @@
 
 #include "register_dependency_table.h"
 
-#define NUM_WAYS 4
-#define NUM_ENTRIES 512
+#define NUM_WAYS 2
+#define NUM_ENTRIES 128
 
 class InstructionSliceTable
 {
@@ -12,7 +12,7 @@ class InstructionSliceTable
   #define IP_TO_INDEX(_ip) ((_ip) % NUM_ENTRIES)
   // tag = ip[31:7] (25 bits) for 128 entries
   #define IP_TO_TAG(_ip) ((_ip) / NUM_ENTRIES)
-
+  
   class Way
   {
   public:
