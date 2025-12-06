@@ -8,6 +8,8 @@
 #include "micro_op.h"
 #include "register_dependencies.h"
 #include "memory_dependencies.h"
+#include "register_dependency_table.h"
+#include "instruction_slice_table.h"
 
 class Core;
 class IntervalContention;
@@ -177,6 +179,9 @@ private:
 
   RegisterDependencies* const m_register_dependencies;
   MemoryDependencies* const m_memory_dependencies;
+  // For IST-RDT implementation
+  RegisterDependencyTable* const m_register_dependency_table;
+  InstructionSliceTable* const m_instruction_slice_table;
 
   int m_window_head__old_window_tail;
   int m_window_tail;

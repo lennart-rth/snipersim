@@ -152,6 +152,9 @@ class DynamicMicroOp
 
       bool isAddressGenerating() const { return is_agi; }
       void setAddressGenerating() { is_agi = true; }
+
+      // For IST-RDT implementation
+      UInt64 getIP() const;
 };
 
 #endif // __DYNAMIC_MICRO_OP_INFO_H
