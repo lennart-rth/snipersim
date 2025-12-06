@@ -8,13 +8,11 @@
 
 class InstructionSliceTable
 {
-  #define IP_TO_INDEX(_ip) ((_ip >> 4) & 0x1ff)
+  // index = ip[6:0] (7 bits) for 128 entries
+  #define IP_TO_INDEX(_ip) ((_ip) % NUM_ENTRIES)
+  // tag = ip[31:7] (25 bits) for 128 entries
+  #define IP_TO_TAG(_ip) ((_ip) / NUM_ENTRIES)
 
-  #define TAG_OFFSET_MASK 0x3fe00f
-  #define IP_TO_TAGOFF(_ip) (_ip & TAG_OFFSET_MASK)
-  // offset = ip[3:0] (4 bits)
-  // index = ip[12:4] (9 bits), 512 entries
-  // tag = ip[21:13] (9 bits)
   class Way
   {
   public:

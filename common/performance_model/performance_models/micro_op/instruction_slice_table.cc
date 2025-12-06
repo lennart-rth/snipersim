@@ -5,7 +5,7 @@ void InstructionSliceTable::update(const IntPtr ip)
 {
   UInt32 lru_way = 0;
 
-  const UInt32 tag_offset = IP_TO_TAGOFF(ip), index = IP_TO_INDEX(ip);
+  const UInt32 tag_offset = IP_TO_TAG(ip), index = IP_TO_INDEX(ip);
   for (unsigned int w = 0 ; w < NUM_WAYS ; ++w )
   {
     if (m_ways[w].m_tag_offset[index] == tag_offset)
@@ -52,7 +52,7 @@ bool InstructionSliceTable::predict(const DynamicMicroOp &microOp) const
     return false;
   
   const IntPtr ip = microOp.getIP();
-  const UInt32 index = IP_TO_INDEX(ip), tag_offset = IP_TO_TAGOFF(ip);
+  const UInt32 index = IP_TO_INDEX(ip), tag_offset = IP_TO_TAG(ip);
   for (unsigned int i = 0 ; i < NUM_WAYS ; ++i )
   {
     if (m_ways[i].m_tag_offset[index] == tag_offset)
