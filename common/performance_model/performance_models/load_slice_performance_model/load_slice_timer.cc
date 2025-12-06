@@ -31,8 +31,11 @@ LoadSliceTimer::LoadSliceTimer(
 , mispredictionPenalty(8)
 , bypassLoads(Sim()->getCfg()->getBool("perf_model/core/load_slice_timer/bypass_loads"))
 , bypassStores(Sim()->getCfg()->getBool("perf_model/core/load_slice_timer/bypass_stores"))
+, bypassGenerators(Sim()->getCfg()->getBool("perf_model/core/load_slice_timer/bypass_generators"))
 , registerProducerMap(Sim()->getDecoder()->last_reg())
 , memoryProducerMap()
+, registerDependencyTable()
+, instructionSliceTable()
 {
     nextIssue = SubsecondTime::MaxTime();
     nextCommit = SubsecondTime::MaxTime();
@@ -104,6 +107,12 @@ boost::tuple<uint64_t,uint64_t> LoadSliceTimer::simulate(const std::vector<Dynam
             uint64_t address = uop->getStoreAccess().address;
             memoryProducerMap[address] = uop->getSequenceNumber();
         }
+        // load slice detection
+        if (instructionSliceTable.predict(*uop)) {
+            uop->setAddressGenerating();
+        }
+        instructionSliceTable.update(*uop, registerDependencyTable);
+        registerDependencyTable.setDependency(*uop);
     }
 
     uint64_t totalInstructions = 0;
@@ -130,6 +139,9 @@ bool LoadSliceTimer::shouldBypass(ScoreBoardEntry *entry) {
         return true;
     }
     if (bypassStores && entry->uop->getMicroOp()->isStore()) {
+        return true;
+    }
+    if (bypassGenerators && entry->uop->isAddressGenerating()) {
         return true;
     }
     return false;

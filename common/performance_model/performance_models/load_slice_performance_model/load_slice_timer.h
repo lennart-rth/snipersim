@@ -9,6 +9,9 @@
 
 #include "boost/tuple/tuple.hpp"
 
+#include "register_dependency_table.h"
+#include "instruction_slice_table.h"
+
 class ScoreBoardEntry {
     public:
         DynamicMicroOp *uop;
@@ -48,6 +51,7 @@ class LoadSliceTimer {
 
         const bool bypassLoads;
         const bool bypassStores;
+        const bool bypassGenerators;
 
         uint64_t nextSequenceNumber;
         uint64_t headSequenceNumber;
@@ -55,6 +59,10 @@ class LoadSliceTimer {
 
         std::vector<uint64_t> registerProducerMap;
         std::unordered_map<uint64_t,uint64_t> memoryProducerMap;
+
+        // load slice detection
+        RegisterDependencyTable registerDependencyTable;
+        InstructionSliceTable instructionSliceTable;
     
     public:
         LoadSliceTimer(
