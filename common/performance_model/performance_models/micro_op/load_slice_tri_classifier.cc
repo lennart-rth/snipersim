@@ -1,4 +1,6 @@
 #include "load_slice_tri_classifier.h"
+
+#include "log.h"
 #include "dynamic_micro_op.h"
 
 void LoadSliceTriClassifier::update(const IntPtr ip)
@@ -26,10 +28,28 @@ void LoadSliceTriClassifier::update(const IntPtr ip)
 
 void LoadSliceTriClassifier::update(const DynamicMicroOp &microOp)
 {
-  if(!(microOp.getMicroOp()->isStore() || microOp.getMicroOp()->isLoad() || predict(microOp)))
+  const UInt64 instruction_queue_type = microOp.getInstructionQueueType();
+  LOG_ASSERT_ERROR(instruction_queue_type < instruction_queue_type::QUEUE_COUNT, "MicroOp has invalid instruction queue type");
+
+  if(microOp.getMicroOp()->isStore()){
+    for(unsigned int i = 0; i < microOp.getMicroOp()->getAddressRegistersLength(); ++i)
+    {
+      dl::Decoder::decoder_reg reg = microOp.getMicroOp()->getAddressRegister(i);
+      LOG_ASSERT_ERROR(reg < Sim()->getDecoder()->last_reg(), "address register src[%u] = %u is invalid", i, reg);
+      uint64_t addressProducer = peekProducer(microOp.getMicroOp()->getAddressRegister(i));
+      if(addressProducer != INVALID_ADDRESS)
+      {
+        update(addressProducer);
+      }
+    }
+    return;
+  }
+
+  if(instruction_queue_type == instruction_queue_type::MAIN_QUEUE)
     return;
 
-  update(microOp.getInstructionPointer().phys);
+  if(!microOp.getMicroOp()->isLoad())
+    update(microOp.getInstructionPointer().phys);
 
   for (uint32_t i = 0; i < microOp.getMicroOp()->getSourceRegistersLength(); i++)
   {
@@ -85,5 +105,9 @@ UInt64 LoadSliceTriClassifier::peekProducer(const dl::Decoder::decoder_reg reg) 
 
 
 UInt64 LoadSliceTriClassifier::getNumQueues() const {
-  return 3ull;
+  return instruction_queue_type::QUEUE_COUNT;
+}
+
+void LoadSliceTriClassifier::issued(const DynamicMicroOp &microOp) {
+  // No action needed on issue for this classifier
 }

@@ -1,4 +1,6 @@
 #include "load_slice_bi_classifier.h"
+
+#include "log.h"
 #include "dynamic_micro_op.h"
 
 void LoadSliceBiClassifier::update(const IntPtr ip)
@@ -26,10 +28,28 @@ void LoadSliceBiClassifier::update(const IntPtr ip)
 
 void LoadSliceBiClassifier::update(const DynamicMicroOp &microOp)
 {
-  if(!(microOp.getMicroOp()->isStore() || microOp.getMicroOp()->isLoad() || predict(microOp)))
+  const UInt64 instruction_queue_type = microOp.getInstructionQueueType();
+  LOG_ASSERT_ERROR(instruction_queue_type < instruction_queue_type::QUEUE_COUNT, "MicroOp has invalid instruction queue type");
+
+  if(microOp.getMicroOp()->isStore()){
+    for(unsigned int i = 0; i < microOp.getMicroOp()->getAddressRegistersLength(); ++i)
+    {
+      dl::Decoder::decoder_reg reg = microOp.getMicroOp()->getAddressRegister(i);
+      LOG_ASSERT_ERROR(reg < Sim()->getDecoder()->last_reg(), "address register src[%u] = %u is invalid", i, reg);
+      uint64_t addressProducer = peekProducer(microOp.getMicroOp()->getAddressRegister(i));
+      if(addressProducer != INVALID_ADDRESS)
+      {
+        update(addressProducer);
+      }
+    }
+    return;
+  }
+
+  if(instruction_queue_type == instruction_queue_type::MAIN_QUEUE)
     return;
 
-  update(microOp.getInstructionPointer().phys);
+  if(!microOp.getMicroOp()->isLoad())
+    update(microOp.getInstructionPointer().phys);
 
   for (uint32_t i = 0; i < microOp.getMicroOp()->getSourceRegistersLength(); i++)
   {
@@ -55,9 +75,6 @@ UInt64 LoadSliceBiClassifier::predict(const DynamicMicroOp &microOp) const
 {
   if (microOp.getMicroOp()->isLoad())
     return instruction_queue_type::BIPASS_QUEUE;
-    return instruction_queue_type::MAIN_QUEUE;
-  if (microOp.getMicroOp()->isStore())
-    return instruction_queue_type::MAIN_QUEUE;
   
   const IntPtr ip = microOp.getInstructionPointer().phys;
   const UInt32 index = IP_TO_INDEX(ip), tag_offset = IP_TO_TAGOFF(ip);
@@ -83,7 +100,10 @@ UInt64 LoadSliceBiClassifier::peekProducer(const dl::Decoder::decoder_reg reg) c
   return producers[reg];
 }
 
-
 UInt64 LoadSliceBiClassifier::getNumQueues() const {
-  return 2ull;
+  return instruction_queue_type::QUEUE_COUNT;
+}
+
+void LoadSliceBiClassifier::issued(const DynamicMicroOp &microOp) {
+  // No action needed on issue for this classifier
 }

@@ -64,7 +64,7 @@ LoadSliceTimer::LoadSliceTimer(
       , instruction_queue_classifier(
          Sim()->getCfg()->getStringArray("perf_model/core/loadslice/classifier", core->getId()) == "bi"
          ? static_cast<InstructionQueueClassifier*>(new LoadSliceBiClassifier())
-         : Sim()->getCfg()->getStringArray("perf_model/core/loadslice/classifier", core->getId()) == "bi" == "tri"
+         : Sim()->getCfg()->getStringArray("perf_model/core/loadslice/classifier", core->getId()) == "tri"
          ? static_cast<InstructionQueueClassifier*>(new LoadSliceTriClassifier())
          : NULL
       )
@@ -835,6 +835,7 @@ SubsecondTime LoadSliceTimer::doIssue()
                   serialize_barriers.pop_back();
                if(i == memory_barriers.back())
                   memory_barriers.pop_back();
+               instruction_queue_classifier->issued(*uop);
 
                // Calculate memory-level parallelism (MLP) for long-latency loads (but ignore overlapped misses)
                if (uop->getMicroOp()->isLoad() && uop->isLongLatencyLoad() && uop->getDCacheHitWhere() != HitWhere::L1_OWN)

@@ -36,7 +36,7 @@ DynamicMicroOp::DynamicMicroOp(const MicroOp *uop, const CoreModel *core_model, 
 
    first = m_uop->isFirst();
    last = m_uop->isLast();
-   instruction_queue_type = 0;
+   instruction_queue_type = UINT64_MAX;
 }
 
 DynamicMicroOp::~DynamicMicroOp()

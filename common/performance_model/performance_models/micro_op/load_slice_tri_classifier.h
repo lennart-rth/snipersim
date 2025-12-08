@@ -3,11 +3,11 @@
 
 #include "instruction_queue_classifier.h"
 
-#define NUM_WAYS 4
-#define NUM_ENTRIES 512
-
 class LoadSliceTriClassifier : public InstructionQueueClassifier
 {
+  static constexpr std::size_t NUM_WAYS = 4;
+  static constexpr std::size_t NUM_ENTRIES = 512;
+
   #define IP_TO_INDEX(_ip) ((_ip >> 4) & 0x1ff)
 
   #define TAG_OFFSET_MASK 0x3fe00f
@@ -31,7 +31,8 @@ class LoadSliceTriClassifier : public InstructionQueueClassifier
   enum instruction_queue_type {
     LOAD_QUEUE = 0,
     AGI_QUEUE,
-    MAIN_QUEUE
+    MAIN_QUEUE,
+    QUEUE_COUNT
   };
   
   std::vector<UInt64> producers;
@@ -48,6 +49,7 @@ public:
   UInt64 predict(const DynamicMicroOp &microOp) const override;
   void update(const DynamicMicroOp &microOp) override;
   UInt64 getNumQueues() const override;
+  void issued(const DynamicMicroOp &microOp) override;
   void clear() override;
 };
 
