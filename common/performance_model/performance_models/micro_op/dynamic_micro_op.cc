@@ -36,8 +36,7 @@ DynamicMicroOp::DynamicMicroOp(const MicroOp *uop, const CoreModel *core_model, 
 
    first = m_uop->isFirst();
    last = m_uop->isLast();
-
-   is_agi = false;
+   instruction_queue_type = 0;
 }
 
 DynamicMicroOp::~DynamicMicroOp()

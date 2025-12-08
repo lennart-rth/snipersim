@@ -65,7 +65,7 @@ class DynamicMicroOp
 
       // architecture-specific information to be defined in derived classes
 
-      bool is_agi;
+      UInt64 instruction_queue_type; // For IST-RDT implementation
 
    public:
 
@@ -150,8 +150,8 @@ class DynamicMicroOp
       // More dynamic, architecture-dependent information to be defined by derived classes
       virtual const char* getType() const = 0; // Make this class pure virtual
 
-      bool isAddressGenerating() const { return is_agi; }
-      void setAddressGenerating() { is_agi = true; }
+      UInt64 getInstructionQueueType() const { return instruction_queue_type; }
+      void setInstructionQueueType(const UInt64 type) { instruction_queue_type = type; }
 
       // For IST-RDT implementation
       Memory::Access getInstructionPointer() const;

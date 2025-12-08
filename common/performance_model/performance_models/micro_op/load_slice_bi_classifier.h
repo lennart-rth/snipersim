@@ -1,12 +1,12 @@
-#ifndef __INSTRUCTION_SLICE_TABLE_H
-#define __INSTRUCTION_SLICE_TABLE_H
+#ifndef __LOAD_SLICE_BI_CLASSIFIER_TABLE_H
+#define __LOAD_SLICE_BI_CLASSIFIER_TABLE_H
 
-#include "register_dependency_table.h"
+#include "instruction_queue_classifier.h"
 
 #define NUM_WAYS 4
 #define NUM_ENTRIES 512
 
-class InstructionSliceTable
+class LoadSliceBiClassifier : public InstructionQueueClassifier
 {
   #define IP_TO_INDEX(_ip) ((_ip >> 4) & 0x1ff)
 
@@ -28,14 +28,26 @@ class InstructionSliceTable
   std::vector<Way> m_ways;
   UInt64 m_lru_use_count;
 
+  enum instruction_queue_type {
+    BIPASS_QUEUE = 0,
+    MAIN_QUEUE
+  };
+  
+  std::vector<UInt64> producers;
+
   void update(const IntPtr ip);
+  UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
+
 public:
-  InstructionSliceTable()
+  LoadSliceBiClassifier()
     : m_ways(NUM_WAYS)
     , m_lru_use_count(0)
+    , producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
   {}
-  bool predict(const DynamicMicroOp &microOp) const;
-  void update(const DynamicMicroOp &microOp, const RegisterDependencyTable &regDepTable);
+  UInt64 predict(const DynamicMicroOp &microOp) const override;
+  void update(const DynamicMicroOp &microOp) override;
+  UInt64 getNumQueues() const override;
+  void clear() override;
 };
 
-#endif // __INSTRUCTION_SLICE_TABLE_H
+#endif // __LOAD_SLICE_BI_CLASSIFIER_TABLE_H

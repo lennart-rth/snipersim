@@ -2,16 +2,18 @@
  * This file is covered under the Interval Academic License, see LICENCE.academic
  */
 
-#ifndef ROBTIMER_HPP_
-#define ROBTIMER_HPP_
+#ifndef LOADSLICE_TIMER_HPP_
+#define LOADSLICE_TIMER_HPP_
 
 #include "interval_timer.h"
 #include "rob_contention.h"
 #include "stats.h"
 
+#include "instruction_queue_classifier.h"
+
 #include <deque>
 
-class RobTimer
+class LoadSliceTimer
 {
 private:
    class RobEntry
@@ -53,9 +55,6 @@ private:
    const bool m_store_to_load_forwarding;
    const bool m_no_address_disambiguation;
    const bool inorder;
-   const bool ooo_load_data;
-   const bool ooo_generate_address;
-   const uint64_t agi_detector_depth;
 
    Core *m_core;
 
@@ -79,8 +78,7 @@ private:
    RegisterDependencies* const registerDependencies;
    MemoryDependencies* const memoryDependencies;
    // For IST-RDT implementation
-   RegisterDependencyTable* const registerDependencyTable;
-   InstructionSliceTable* const instructionSliceTable;
+   InstructionQueueClassifier* const instruction_queue_classifier;
 
    int addressMask;
 
@@ -115,6 +113,9 @@ private:
    uint64_t m_totalProducerInsDistance;
    uint64_t m_totalConsumers;
    std::vector<uint64_t> m_producerInsDistance;
+
+   // For IST-RDT implementation
+   std::vector<UInt64> m_instruction_queue_dispatch_count;
 
    PerformanceModel *perf;
 
@@ -153,15 +154,13 @@ private:
 
    void issueInstruction(uint64_t idx, SubsecondTime &next_event);
 
-   void setDependenciesAsAddressGenerating(RobEntry *entry, int level);
-
 public:
 
-   RobTimer(Core *core, PerformanceModel *perf, const CoreModel *core_model, int misprediction_penalty, int dispatch_width, int window_size);
-   ~RobTimer();
+   LoadSliceTimer(Core *core, PerformanceModel *perf, const CoreModel *core_model, int misprediction_penalty, int dispatch_width, int window_size);
+   ~LoadSliceTimer();
 
    boost::tuple<uint64_t,SubsecondTime> simulate(const std::vector<DynamicMicroOp*>& insts);
    void synchronize(SubsecondTime time);
 };
 
-#endif /* ROBTIMER_H_ */
+#endif /* LOADSLICER_TIMER_HPP_ */
