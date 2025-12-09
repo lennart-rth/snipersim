@@ -40,7 +40,7 @@ void RegisterDependencies::setDependencies(DynamicMicroOp& microOp, uint64_t low
 
 }
 
-uint64_t RegisterDependencies::peekProducer(dl::Decoder::decoder_reg reg, uint64_t lowestValidSequenceNumber)
+uint64_t RegisterDependencies::peekProducer(dl::Decoder::decoder_reg reg, uint64_t lowestValidSequenceNumber) const
 {
    if (reg == dl::Decoder::DL_REG_INVALID)
       return INVALID_SEQNR;

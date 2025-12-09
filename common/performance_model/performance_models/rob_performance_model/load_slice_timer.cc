@@ -330,7 +330,7 @@ boost::tuple<uint64_t,SubsecondTime> LoadSliceTimer::simulate(const std::vector<
          entry->uop->setInstructionQueueType(queue_type);
          m_instruction_queue_dispatch_count[queue_type] += 1;
       }
-      this->instruction_queue_classifier->update(*entry->uop);
+      this->instruction_queue_classifier->update(*entry->uop, *this->registerDependencies, lowestValidSequenceNumber);
 
       if (m_store_to_load_forwarding && entry->uop->getMicroOp()->isLoad())
       {

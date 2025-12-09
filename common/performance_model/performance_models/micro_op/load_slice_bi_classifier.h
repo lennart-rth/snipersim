@@ -3,6 +3,8 @@
 
 #include "instruction_queue_classifier.h"
 
+#include <bitset>
+
 class LoadSliceBiClassifier : public InstructionQueueClassifier
 {
   UInt64 ip_to_idx(const IntPtr ip) const;
@@ -24,7 +26,8 @@ class LoadSliceBiClassifier : public InstructionQueueClassifier
     QUEUE_COUNT
   };
   
-  std::vector<UInt64> producers;
+  std::vector<UInt64> producers, pending_deps;
+  std::bitset<instruction_queue_type::QUEUE_COUNT> pending_deps_not_cleared;
 
   void update(const IntPtr ip);
   UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
@@ -32,7 +35,7 @@ class LoadSliceBiClassifier : public InstructionQueueClassifier
 public:
   LoadSliceBiClassifier(const UInt64 ways, const UInt64 entries);
   UInt64 predict(const DynamicMicroOp &microOp) const override;
-  void update(const DynamicMicroOp &microOp) override;
+  void update(DynamicMicroOp &microOp, const RegisterDependencies&, const uint64_t lowestValidSequenceNumber) override;
   UInt64 getNumQueues() const override;
   void issued(const DynamicMicroOp &microOp) override;
   void clear() override;

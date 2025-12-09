@@ -48,22 +48,53 @@ void LoadSliceTriClassifier::update(const IntPtr ip)
   m_ways[lru_way].m_plru[index] = m_lru_use_count++;
 }
 
-void LoadSliceTriClassifier::update(const DynamicMicroOp &microOp)
+void LoadSliceTriClassifier::update(DynamicMicroOp &microOp, const RegisterDependencies& reg_dep, const uint64_t lowestValidSequenceNumber)
 {
   const UInt64 instruction_queue_type = microOp.getInstructionQueueType();
   LOG_ASSERT_ERROR(instruction_queue_type < instruction_queue_type::QUEUE_COUNT, "MicroOp has invalid instruction queue type");
+  
+  if(pending_deps_not_cleared.test(instruction_queue_type)){
+    for(const UInt64 dep : pending_deps)
+      if(dep > lowestValidSequenceNumber)
+        microOp.addDependency(dep);
+    pending_deps_not_cleared.reset(instruction_queue_type);
+  }
 
-  if(microOp.getMicroOp()->isStore() || microOp.getMicroOp()->isLoad()){
+  if(microOp.getMicroOp()->isLoad()){
     for(unsigned int i = 0; i < microOp.getMicroOp()->getAddressRegistersLength(); ++i)
     {
       dl::Decoder::decoder_reg reg = microOp.getMicroOp()->getAddressRegister(i);
       LOG_ASSERT_ERROR(reg < Sim()->getDecoder()->last_reg(), "address register src[%u] = %u is invalid", i, reg);
       const UInt64 addressProducer = peekProducer(microOp.getMicroOp()->getAddressRegister(i));
       if(addressProducer != INVALID_ADDRESS)
-      {
         update(addressProducer);
-      }
     }
+    return;
+  }
+
+  if(microOp.getMicroOp()->isStore()){
+    pending_deps.clear();
+    for(unsigned int i = 0; i < microOp.getMicroOp()->getAddressRegistersLength(); ++i)
+    {
+      dl::Decoder::decoder_reg reg = microOp.getMicroOp()->getAddressRegister(i);
+      LOG_ASSERT_ERROR(reg < Sim()->getDecoder()->last_reg(), "address register src[%u] = %u is invalid", i, reg);
+      if(
+        const UInt64 addressProducer = peekProducer(microOp.getMicroOp()->getAddressRegister(i));
+        addressProducer != INVALID_ADDRESS
+      )
+        update(addressProducer);
+      if(
+        const UInt64 addressProducer = reg_dep.peekProducer(microOp.getMicroOp()->getAddressRegister(i), lowestValidSequenceNumber);
+        addressProducer != INVALID_SEQNR
+      )
+        pending_deps.push_back(addressProducer);
+    }
+
+    if (pending_deps.size()){
+      pending_deps_not_cleared.set();
+      pending_deps_not_cleared.reset(instruction_queue_type::MAIN_QUEUE);
+    }
+
     return;
   }
 

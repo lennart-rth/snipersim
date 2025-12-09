@@ -19,7 +19,7 @@ public:
   RegisterDependencies();
 
   void setDependencies(DynamicMicroOp& microOp, uint64_t lowestValidSequenceNumber);
-  uint64_t peekProducer(dl::Decoder::decoder_reg reg, uint64_t lowestValidSequenceNumber);
+  uint64_t peekProducer(dl::Decoder::decoder_reg reg, uint64_t lowestValidSequenceNumber) const;
 
   void clear();
 };
