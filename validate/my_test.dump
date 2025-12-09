@@ -1,0 +1,38 @@
+
+my_test:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000401000 <_start>:
+#define SIZE (1024 * 1024)
+#define STRIDE 16
+
+volatile int data[SIZE];
+
+void _start() {
+  401000:	f3 0f 1e fa          	endbr64
+    int value;
+    for (int i = 0 ; i < SIZE; i += STRIDE) {
+  401004:	b8 00 00 00 00       	mov    eax,0x0
+        value = data[i];
+  401009:	48 8d 35 f0 1f 00 00 	lea    rsi,[rip+0x1ff0]        # 403000 <data>
+  401010:	48 63 c8             	movsxd rcx,eax
+  401013:	8b 14 8e             	mov    edx,DWORD PTR [rsi+rcx*4]
+        value += 10;
+        value *= 20;
+  401016:	8d 54 92 32          	lea    edx,[rdx+rdx*4+0x32]
+        value += 30;
+  40101a:	8d 14 95 1e 00 00 00 	lea    edx,[rdx*4+0x1e]
+        value *= 40;
+  401021:	8d 14 92             	lea    edx,[rdx+rdx*4]
+  401024:	c1 e2 03             	shl    edx,0x3
+        data[i] = value;
+  401027:	89 14 8e             	mov    DWORD PTR [rsi+rcx*4],edx
+    for (int i = 0 ; i < SIZE; i += STRIDE) {
+  40102a:	83 c0 10             	add    eax,0x10
+  40102d:	3d 00 00 10 00       	cmp    eax,0x100000
+  401032:	75 dc                	jne    401010 <_start+0x10>
+    }
+}
+  401034:	c3                   	ret
