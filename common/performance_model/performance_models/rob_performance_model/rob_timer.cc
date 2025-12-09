@@ -307,7 +307,9 @@ boost::tuple<uint64_t,SubsecondTime> RobTimer::simulate(const std::vector<Dynami
       this->registerDependencies->setDependencies(*entry->uop, lowestValidSequenceNumber);
       this->memoryDependencies->setDependencies(*entry->uop, lowestValidSequenceNumber);
       // For IST-RDT implementation
-      this->instructionSliceTable->predict(*entry->uop);
+      if (this->instructionSliceTable->predict(*entry->uop)) {
+         entry->uop->setAddressGenerating();
+      }
       this->instructionSliceTable->update(*entry->uop, *this->registerDependencyTable);
       this->registerDependencyTable->setDependency(*entry->uop);
 
@@ -333,9 +335,9 @@ boost::tuple<uint64_t,SubsecondTime> RobTimer::simulate(const std::vector<Dynami
          }
       }
 
-      if (ooo_generate_address && entry->uop->getMicroOp()->isLoad()) {
+      /*if (ooo_generate_address && entry->uop->getMicroOp()->isLoad()) {
          setDependenciesAsAddressGenerating(entry, 0);
-      }
+      }*/
 
       // Add ourselves to the dependants list of the uops we depend on
       uint64_t minProducerDistance = UINT64_MAX;
@@ -852,7 +854,7 @@ SubsecondTime RobTimer::doIssue()
       }
       else
       {
-         head_of_queue = false;     // Subsequent instructions are not at the head of the ROB
+            head_of_queue = false;     // Subsequent instructions are not at the head of the ROB
 
          if (uop->getMicroOp()->isStore() && entry->addressReady > now)
             have_unresolved_store = true;
