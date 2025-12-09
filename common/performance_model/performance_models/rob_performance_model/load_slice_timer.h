@@ -54,7 +54,6 @@ private:
    const uint64_t misprediction_penalty;
    const bool m_store_to_load_forwarding;
    const bool m_no_address_disambiguation;
-   const bool inorder;
 
    Core *m_core;
 

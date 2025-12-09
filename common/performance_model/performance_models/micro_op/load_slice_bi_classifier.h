@@ -5,22 +5,18 @@
 
 class LoadSliceBiClassifier : public InstructionQueueClassifier
 {
-  static constexpr std::size_t NUM_WAYS = 4;
-  static constexpr std::size_t NUM_ENTRIES = 512;
-
-  static UInt64 ip_to_idx(const IntPtr ip);
-  static UInt32 ip_to_tagoff(const IntPtr ip);
-  // offset = ip[3:0] (4 bits)
-  // index = ip[12:4] (9 bits), 512 entries
-  // tag = ip[21:13] (9 bits)
+  UInt64 ip_to_idx(const IntPtr ip) const;
+  UInt32 ip_to_tagoff(const IntPtr ip) const;
+  
   struct Way
   {
-    Way();
+    Way(const UInt64 entries);
     std::vector<UInt32> m_tag_offset; // tag and offset data
     std::vector<UInt64> m_plru; // Should be pseudo-LRU, using LRU instead
   };
   std::vector<Way> m_ways;
   UInt64 m_lru_use_count;
+  const UInt64 m_entries;
 
   enum instruction_queue_type {
     BIPASS_QUEUE = 0,
@@ -34,7 +30,7 @@ class LoadSliceBiClassifier : public InstructionQueueClassifier
   UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
 
 public:
-  LoadSliceBiClassifier();
+  LoadSliceBiClassifier(const UInt64 ways, const UInt64 entries);
   UInt64 predict(const DynamicMicroOp &microOp) const override;
   void update(const DynamicMicroOp &microOp) override;
   UInt64 getNumQueues() const override;

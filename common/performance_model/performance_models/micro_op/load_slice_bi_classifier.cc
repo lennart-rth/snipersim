@@ -4,31 +4,34 @@
 #include "dynamic_micro_op.h"
 
 
-UInt64 LoadSliceBiClassifier::ip_to_idx(const IntPtr ip) {
-  return ip % NUM_ENTRIES;
+UInt64 LoadSliceBiClassifier::ip_to_idx(const IntPtr ip) const {
+  return ip % m_entries;
 }
 
-UInt32 LoadSliceBiClassifier::ip_to_tagoff(const IntPtr ip) {
-  return ip / NUM_ENTRIES;
+UInt32 LoadSliceBiClassifier::ip_to_tagoff(const IntPtr ip) const {
+  return ip / m_entries;
 }
 
-LoadSliceBiClassifier::Way::Way()
-  : m_tag_offset(NUM_ENTRIES, 0)
-  , m_plru(NUM_ENTRIES, 0)
+LoadSliceBiClassifier::Way::Way(const UInt64 entries)
+  : m_tag_offset(entries, 0)
+  , m_plru(entries, 0)
 {}
 
-LoadSliceBiClassifier::LoadSliceBiClassifier()
-  : m_ways(NUM_WAYS)
+LoadSliceBiClassifier::LoadSliceBiClassifier(const UInt64 ways, const UInt64 entries)
+  : m_ways(ways, entries)
   , m_lru_use_count(0)
   , producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
-{}
+  , m_entries(entries)
+{
+  LOG_ASSERT_ERROR(entries, "Number of entries must be greater than zero. Set ways to zero instead");
+}
 
 void LoadSliceBiClassifier::update(const IntPtr ip)
 {
   UInt32 lru_way = 0;
 
   const UInt32 tag_offset = ip_to_tagoff(ip), index = ip_to_idx(ip);
-  for (unsigned int w = 0 ; w < NUM_WAYS ; ++w )
+  for (unsigned int w = 0 ; w < m_ways.size() ; ++w )
   {
     if (m_ways[w].m_tag_offset[index] == tag_offset)
     {
@@ -51,12 +54,12 @@ void LoadSliceBiClassifier::update(const DynamicMicroOp &microOp)
   const UInt64 instruction_queue_type = microOp.getInstructionQueueType();
   LOG_ASSERT_ERROR(instruction_queue_type < instruction_queue_type::QUEUE_COUNT, "MicroOp has invalid instruction queue type");
 
-  if(microOp.getMicroOp()->isStore()){
+  if(microOp.getMicroOp()->isStore() || microOp.getMicroOp()->isLoad()){
     for(unsigned int i = 0; i < microOp.getMicroOp()->getAddressRegistersLength(); ++i)
     {
       dl::Decoder::decoder_reg reg = microOp.getMicroOp()->getAddressRegister(i);
-      LOG_ASSERT_ERROR(reg < Sim()->getDecoder()->last_reg(), "Address register src[%u] = %u is invalid", i, reg);
-      uint64_t addressProducer = peekProducer(microOp.getMicroOp()->getAddressRegister(i));
+      LOG_ASSERT_ERROR(reg < Sim()->getDecoder()->last_reg(), "address register src[%u] = %u is invalid", i, reg);
+      const UInt64 addressProducer = peekProducer(microOp.getMicroOp()->getAddressRegister(i));
       if(addressProducer != INVALID_ADDRESS)
       {
         update(addressProducer);
@@ -65,29 +68,28 @@ void LoadSliceBiClassifier::update(const DynamicMicroOp &microOp)
     return;
   }
 
-  if(instruction_queue_type == instruction_queue_type::MAIN_QUEUE)
-    return;
+  // Update the producers
+  for(uint32_t i = 0; i < microOp.getMicroOp()->getDestinationRegistersLength(); i++)
+  {
+    const uint32_t destinationRegister = microOp.getMicroOp()->getDestinationRegister(i);
+    LOG_ASSERT_ERROR(destinationRegister < Sim()->getDecoder()->last_reg(), "Destination register dst[%u] = %u is invalid", i, destinationRegister);
+    producers[destinationRegister] = microOp.getInstructionPointer().phys;
+  }
 
-  if(!microOp.getMicroOp()->isLoad())
-    update(microOp.getInstructionPointer().phys);
+  if(instruction_queue_type == instruction_queue_type::MAIN_QUEUE || microOp.getMicroOp()->isMemBarrier())
+    return;
+  
+  update(microOp.getInstructionPointer().phys);
 
   for (uint32_t i = 0; i < microOp.getMicroOp()->getSourceRegistersLength(); i++)
   {
-    const dl::Decoder::decoder_reg sourceRegister = microOp.getMicroOp()->getSourceRegister(i);
+    dl::Decoder::decoder_reg sourceRegister = microOp.getMicroOp()->getSourceRegister(i);
     LOG_ASSERT_ERROR(sourceRegister < Sim()->getDecoder()->last_reg(), "Source register src[%u] = %u is invalid", i, sourceRegister);
     const UInt64 producerIP = peekProducer(sourceRegister);
     if (producerIP != INVALID_ADDRESS)
     {
       update(producerIP);
     }
-  }
-
-  // Update the producers
-  for(uint32_t i = 0; i < microOp.getMicroOp()->getDestinationRegistersLength(); i++)
-  {
-    const dl::Decoder::decoder_reg destinationRegister = microOp.getMicroOp()->getDestinationRegister(i);
-    LOG_ASSERT_ERROR(destinationRegister < Sim()->getDecoder()->last_reg(), "Destination register dst[%u] = %u is invalid", i, destinationRegister);
-    producers[destinationRegister] = microOp.getInstructionPointer().phys;
   }
 }
 
@@ -97,8 +99,9 @@ UInt64 LoadSliceBiClassifier::predict(const DynamicMicroOp &microOp) const
     return instruction_queue_type::BIPASS_QUEUE;
   
   const IntPtr ip = microOp.getInstructionPointer().phys;
-  const UInt32 index = ip_to_idx(ip), tag_offset = ip_to_tagoff(ip);
-  for (unsigned int i = 0 ; i < NUM_WAYS ; ++i )
+  const UInt32 tag_offset = ip_to_tagoff(ip);
+  const UInt64 index = ip_to_idx(ip);
+  for (unsigned int i = 0 ; i < m_ways.size() ; ++i )
   {
     if (m_ways[i].m_tag_offset[index] == tag_offset)
     {

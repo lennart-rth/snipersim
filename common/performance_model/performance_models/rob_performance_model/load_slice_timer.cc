@@ -28,6 +28,17 @@
 // Define to not skip any cycles, but assert that the skip logic is working fine
 //#define ASSERT_SKIP
 
+static InstructionQueueClassifier* select_instruction_queue_classifier(const String &type, const UInt64 ways, const UInt64 entries)
+{
+   if (type == "bi")
+      return new LoadSliceBiClassifier(ways, entries);
+   else if (type == "tri")
+      return new LoadSliceTriClassifier(ways, entries);
+   
+   LOG_PRINT_ERROR("Invalid instruction queue classifier type: %s", type.c_str());
+   return NULL;
+}
+
 LoadSliceTimer::LoadSliceTimer(
          Core *core, PerformanceModel *_perf, const CoreModel *core_model,
          int misprediction_penalty,
@@ -40,7 +51,6 @@ LoadSliceTimer::LoadSliceTimer(
       , misprediction_penalty(misprediction_penalty)
       , m_store_to_load_forwarding(Sim()->getCfg()->getBoolArray("perf_model/core/rob_timer/store_to_load_forwarding", core->getId()))
       , m_no_address_disambiguation(!Sim()->getCfg()->getBoolArray("perf_model/core/rob_timer/address_disambiguation", core->getId()))
-      , inorder(Sim()->getCfg()->getBoolArray("perf_model/core/rob_timer/in_order", core->getId()))
       , m_core(core)
       , rob(window_size + 255)
       , m_num_in_rob(0)
@@ -62,11 +72,11 @@ LoadSliceTimer::LoadSliceTimer(
       , memoryDependencies(new MemoryDependencies())
       // For IST-RDT implementation
       , instruction_queue_classifier(
-         Sim()->getCfg()->getStringArray("perf_model/core/loadslice/classifier", core->getId()) == "bi"
-         ? static_cast<InstructionQueueClassifier*>(new LoadSliceBiClassifier())
-         : Sim()->getCfg()->getStringArray("perf_model/core/loadslice/classifier", core->getId()) == "tri"
-         ? static_cast<InstructionQueueClassifier*>(new LoadSliceTriClassifier())
-         : NULL
+         select_instruction_queue_classifier(
+            Sim()->getCfg()->getStringArray("perf_model/core/loadslice/classifier", core->getId())
+            , Sim()->getCfg()->getIntArray("perf_model/core/loadslice/ways", core->getId())
+            , Sim()->getCfg()->getIntArray("perf_model/core/loadslice/entries", core->getId())
+         )
       )
       , perf(_perf)
       , m_cpiCurrentFrontEndStall(NULL)
@@ -165,7 +175,6 @@ LoadSliceTimer::LoadSliceTimer(
    m_instruction_queue_dispatch_count.resize(this->instruction_queue_classifier->getNumQueues());
    for(UInt64 i = 0; i < this->instruction_queue_classifier->getNumQueues(); ++i)
    {
-      m_instruction_queue_dispatch_count[i] = 0;
       String name = String("instruction_queue_dispatch[") + itostr(i) + "]";
       registerStatsMetric("rob_timer", core->getId(), name, &m_instruction_queue_dispatch_count[i]);
    }
@@ -316,7 +325,7 @@ boost::tuple<uint64_t,SubsecondTime> LoadSliceTimer::simulate(const std::vector<
       {
          const UInt64 queue_type = this->instruction_queue_classifier->predict(*entry->uop);
          entry->uop->setInstructionQueueType(queue_type);
-         m_instruction_queue_dispatch_count[queue_type] += 1 ;
+         m_instruction_queue_dispatch_count[queue_type] += 1;
       }
       this->instruction_queue_classifier->update(*entry->uop);
 
@@ -747,7 +756,7 @@ SubsecondTime LoadSliceTimer::doIssue()
    if(!m_num_in_rob)
       return next_event;
 
-   std::vector<uint64_t> serialize_barriers = {INVALID_SEQNR}, memory_barriers = {INVALID_SEQNR};
+   std::vector<uint64_t> serialize_barriers = {INVALID_SEQNR};
 
    // scan serializing and memory barrier instructions
    
@@ -761,8 +770,6 @@ SubsecondTime LoadSliceTimer::doIssue()
 
       if (uop->getMicroOp()->isSerializing())
          serialize_barriers.emplace_back(i);
-      else if (uop->getMicroOp()->isMemBarrier())
-         memory_barriers.emplace_back(i);
    }
 
    uint64_t prev_issued;
@@ -794,9 +801,6 @@ SubsecondTime LoadSliceTimer::doIssue()
 
             if (entry->ready > now)
                canIssue = false;          // blocked by dependency
-
-            else if (i > memory_barriers.back()  && (uop->getMicroOp()->isLoad() || uop->getMicroOp()->isStore()))
-               canIssue = false;          // blocked by mfence
 
             else if (uop->getMicroOp()->isSerializing() && head_of_queue && last_store_done <= now)
                canIssue = true;
@@ -833,8 +837,7 @@ SubsecondTime LoadSliceTimer::doIssue()
                issueInstruction(i, next_event);
                if(i == serialize_barriers.back())
                   serialize_barriers.pop_back();
-               if(i == memory_barriers.back())
-                  memory_barriers.pop_back();
+                  
                instruction_queue_classifier->issued(*uop);
 
                // Calculate memory-level parallelism (MLP) for long-latency loads (but ignore overlapped misses)
@@ -872,8 +875,7 @@ SubsecondTime LoadSliceTimer::doIssue()
                if (uop->getMicroOp()->isStore() && entry->addressReady > now)
                   have_unresolved_store = true;
 
-               if (inorder)
-                  break;
+               break;
             }
 
 
