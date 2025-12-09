@@ -160,6 +160,9 @@ void LoadSliceTimer::dispatch() {
         nextDispatch = stalledUntil;
         return;
     }
+    else {
+        nextDispatch = now + 1;
+    }
     while (dispatchCount < dispatchWidth && scoreBoardCount < windowSize) {
         ScoreBoardEntry *entry = &scoreBoard.at(scoreBoardCount);
 
