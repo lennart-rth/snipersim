@@ -53,6 +53,10 @@ class LoadSliceTimer {
         const bool bypassStores;
         const bool bypassGenerators;
 
+        uint64_t countBypassLoads;
+        uint64_t countBypassStores;
+        uint64_t countBypassGenerators;
+
         uint64_t nextSequenceNumber;
         uint64_t headSequenceNumber;
         uint64_t scoreBoardCount;

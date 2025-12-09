@@ -44,6 +44,9 @@ LoadSliceTimer::LoadSliceTimer(
     stalledByBranchMiss = false;
     nextSequenceNumber = 1;
     scoreBoardCount = 0;
+    countBypassLoads = 0;
+    countBypassStores = 0;
+    countBypassGenerators = 0;
 }
 
 LoadSliceTimer::~LoadSliceTimer() {
@@ -136,12 +139,15 @@ boost::tuple<uint64_t,uint64_t> LoadSliceTimer::simulate(const std::vector<Dynam
 
 bool LoadSliceTimer::shouldBypass(ScoreBoardEntry *entry) {
     if (bypassLoads && entry->uop->getMicroOp()->isLoad()) {
+        countBypassLoads++;
         return true;
     }
     if (bypassStores && entry->uop->getMicroOp()->isStore()) {
+        countBypassStores++;
         return true;
     }
     if (bypassGenerators && entry->uop->isAddressGenerating()) {
+        countBypassGenerators++;
         return true;
     }
     return false;
