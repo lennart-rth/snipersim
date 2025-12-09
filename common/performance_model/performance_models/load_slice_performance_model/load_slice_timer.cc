@@ -221,53 +221,59 @@ void LoadSliceTimer::dispatch() {
 void LoadSliceTimer::issue() {
     int issueCount = 0;
     nextIssue = SubsecondTime::MaxTime();
-    // issue from bypass queue
-    while (issueCount < issueWidth && !bypassQueue.empty()) {
-        ScoreBoardEntry *entry = bypassQueue.front();
+    // issue from bypass queue or main queue depending on the age
+    while (issueCount < issueWidth && (!bypassQueue.empty() || !mainQueue.empty())) {
+        // list of candidates
+        ScoreBoardEntry *candidates[2];
+        // bypass queue has a candidate
+        if (!bypassQueue.empty()) {
+            candidates[0] = bypassQueue.front();
+        }
+        else {
+            candidates[0] = NULL;
+        }
+        // main queue has a candidate
+        if (!mainQueue.empty()) {
+            candidates[1] = mainQueue.front();
+        }
+        else {
+            candidates[1] = NULL;
+        }
 
-        // blocked by dependency
-        if (!entry->isReady) {
-            break;
-        }
-        if (entry->readyToIssue > now) {
+        // choose entry to be issued
+        ScoreBoardEntry *entry = NULL;
+        for (ScoreBoardEntry *candidate : candidates) {
+            // candidate is ready to be issued
+            if (candidate != NULL && candidate->isReady) {
+                if (candidate->readyToIssue <= now) {
+                    // candidate is older than the other one
+                    if (entry == NULL || candidate->uop->getSequenceNumber() < entry->uop->getSequenceNumber()) {
+                        entry = candidate;
+                    }
+                }
+                else {
             // update time when next instruction is ready to be issued
-            nextIssue = std::min(nextIssue, entry->readyToIssue);
+                    nextIssue = std::min(nextIssue, candidate->readyToIssue);  
+                }
+            }
+        }
+
+        // none of the candidates is ready to be issued
+        if (entry == NULL) {
             break;
         }
-        // blocked by barrier?
-        // blocked by load queue?
-        // blocked by store queue?
 
         // issue!
         issueCount++;
         issueInstruction(entry);
 
         // pop from the queue
-        bypassQueue.pop();
-    }
-    // issue from main queue
-    while (issueCount < issueWidth && !mainQueue.empty()) {
-        ScoreBoardEntry *entry = mainQueue.front();
-
-        // blocked by dependency
-        if (!entry->isReady) {
-            break;
+        if (entry == candidates[0]) {
+            bypassQueue.pop();
         }
-        if (entry->readyToIssue > now) {
-            // update time when next instruction is ready to be issued
-            nextIssue = std::min(nextIssue, entry->readyToIssue);
-            break;
-        }
-        // blocked by barrier?
-        // blocked by load queue?
-        // blocked by store queue?
-
-        // issue!
-        issueCount++;
-        issueInstruction(entry);
-
-        // pop from the queue
+        if (entry == candidates[1]) {
         mainQueue.pop();
+        }
     }
 }
 
