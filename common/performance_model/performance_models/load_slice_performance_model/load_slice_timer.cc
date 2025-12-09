@@ -133,6 +133,7 @@ boost::tuple<uint64_t,uint64_t> LoadSliceTimer::simulate(const std::vector<Dynam
         dispatch();
         issue();
         totalInstructions += commit();
+        //print();
         totalCycles += advance();
     }
 }
@@ -252,7 +253,7 @@ void LoadSliceTimer::issue() {
                     }
                 }
                 else {
-            // update time when next instruction is ready to be issued
+                    // update time when next instruction is ready to be issued
                     nextIssue = std::min(nextIssue, candidate->readyToIssue);  
                 }
             }
@@ -272,7 +273,7 @@ void LoadSliceTimer::issue() {
             bypassQueue.pop();
         }
         if (entry == candidates[1]) {
-        mainQueue.pop();
+            mainQueue.pop();
         }
     }
 }
@@ -382,6 +383,15 @@ int LoadSliceTimer::advance() {
 
 void LoadSliceTimer::print() {
     printf("now=%d\n", SubsecondTime::divideRounded(now, now.getPeriod()));
+    printf("bypassQueue: size=%d\n", bypassQueue.size());
+    for (ScoreBoardEntry *entry : bypassQueue) {
+        printf("%d\t%d\t%d\t%s\n",
+            entry->uop->getSequenceNumber(),
+            entry->uop->getDependenciesLength(),
+            entry->isReady ? SubsecondTime::divideRounded(entry->readyToIssue, now.getPeriod()) : -1,
+            entry->uop->getMicroOp()->getInstruction() ? entry->uop->getMicroOp()->getInstruction()->getDisassembly().c_str() : "?"
+        );
+    }
     printf("mainQueue: size=%d\n", mainQueue.size());
     for (ScoreBoardEntry *entry : mainQueue) {
         printf("%d\t%d\t%d\t%s\n",
@@ -390,6 +400,12 @@ void LoadSliceTimer::print() {
             entry->isReady ? SubsecondTime::divideRounded(entry->readyToIssue, now.getPeriod()) : -1,
             entry->uop->getMicroOp()->getInstruction() ? entry->uop->getMicroOp()->getInstruction()->getDisassembly().c_str() : "?"
         );
+    }
+    if (now < stalledUntil) {
+        printf("stalledUntil=%d\n", SubsecondTime::divideRounded(stalledUntil, now.getPeriod()));
+    }
+    if (now.getCycleCount() > 1000) {
+        exit(-1);
     }
 }
 
