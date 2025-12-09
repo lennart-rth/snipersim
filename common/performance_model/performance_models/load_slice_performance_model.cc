@@ -24,3 +24,13 @@ void LoadSlicePerformanceModel::notifyElapsedTimeUpdate()
 {
 
 }
+
+void LoadSlicePerformanceModel::enableDetailedModel()
+{
+    timer.enable();
+}
+
+void LoadSlicePerformanceModel::disableDetailedModel()
+{
+    timer.disable();
+}

@@ -383,3 +383,13 @@ void LoadSliceTimer::print() {
         );
     }
 }
+
+void LoadSliceTimer::enable() {
+
+}
+
+void LoadSliceTimer::disable() {
+    printf("countBypassLoads=%llu\n", countBypassLoads);
+    printf("countBypassStores=%llu\n", countBypassStores);
+    printf("countBypassGeenerators=%llu\n", countBypassGenerators);
+}

@@ -84,6 +84,8 @@ class LoadSliceTimer {
         int commit();
         int advance();
         void print();
+        void enable();
+        void disable();
 };
 
 #endif
