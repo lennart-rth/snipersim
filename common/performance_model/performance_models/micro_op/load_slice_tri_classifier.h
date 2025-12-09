@@ -8,20 +8,15 @@ class LoadSliceTriClassifier : public InstructionQueueClassifier
   static constexpr std::size_t NUM_WAYS = 4;
   static constexpr std::size_t NUM_ENTRIES = 512;
 
-  #define IP_TO_INDEX(_ip) ((_ip >> 4) & 0x1ff)
+  static UInt64 ip_to_idx(const IntPtr ip);
+  static UInt32 ip_to_tagoff(const IntPtr ip);
 
-  #define TAG_OFFSET_MASK 0x3fe00f
-  #define IP_TO_TAGOFF(_ip) (_ip & TAG_OFFSET_MASK)
   // offset = ip[3:0] (4 bits)
   // index = ip[12:4] (9 bits), 512 entries
   // tag = ip[21:13] (9 bits)
-  class Way
+  struct Way
   {
-  public:
-    Way()
-      : m_tag_offset(NUM_ENTRIES, 0)
-      , m_plru(NUM_ENTRIES, 0)
-    {}
+    Way();
     std::vector<UInt32> m_tag_offset; // tag and offset data
     std::vector<UInt64> m_plru; // Should be pseudo-LRU, using LRU instead
   };
@@ -41,11 +36,7 @@ class LoadSliceTriClassifier : public InstructionQueueClassifier
   UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
 
 public:
-  LoadSliceTriClassifier()
-    : m_ways(NUM_WAYS)
-    , m_lru_use_count(0)
-    , producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
-  {}
+  LoadSliceTriClassifier();
   UInt64 predict(const DynamicMicroOp &microOp) const override;
   void update(const DynamicMicroOp &microOp) override;
   UInt64 getNumQueues() const override;

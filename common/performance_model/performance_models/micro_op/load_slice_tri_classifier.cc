@@ -3,11 +3,30 @@
 #include "log.h"
 #include "dynamic_micro_op.h"
 
+UInt64 LoadSliceTriClassifier::ip_to_idx(const IntPtr ip) {
+  return ip % NUM_ENTRIES;
+}
+
+UInt32 LoadSliceTriClassifier::ip_to_tagoff(const IntPtr ip) {
+  return ip / NUM_ENTRIES;
+}
+
+LoadSliceTriClassifier::Way::Way()
+  : m_tag_offset(NUM_ENTRIES, 0)
+  , m_plru(NUM_ENTRIES, 0)
+{}
+
+LoadSliceTriClassifier::LoadSliceTriClassifier()
+  : m_ways(NUM_WAYS)
+  , m_lru_use_count(0)
+  , producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
+{}
+
 void LoadSliceTriClassifier::update(const IntPtr ip)
 {
   UInt32 lru_way = 0;
 
-  const UInt32 tag_offset = IP_TO_TAGOFF(ip), index = IP_TO_INDEX(ip);
+  const UInt32 tag_offset = ip_to_tagoff(ip), index = ip_to_idx(ip);
   for (unsigned int w = 0 ; w < NUM_WAYS ; ++w )
   {
     if (m_ways[w].m_tag_offset[index] == tag_offset)
@@ -45,7 +64,7 @@ void LoadSliceTriClassifier::update(const DynamicMicroOp &microOp)
     return;
   }
 
-  if(instruction_queue_type == instruction_queue_type::MAIN_QUEUE)
+  if(instruction_queue_type == instruction_queue_type::MAIN_QUEUE || microOp.getMicroOp()->isMemBarrier())
     return;
 
   if(!microOp.getMicroOp()->isLoad())
@@ -73,14 +92,14 @@ void LoadSliceTriClassifier::update(const DynamicMicroOp &microOp)
 
 UInt64 LoadSliceTriClassifier::predict(const DynamicMicroOp &microOp) const
 {
-  if (microOp.getMicroOp()->isLoad())
+  if (microOp.getMicroOp()->isLoad() || microOp.getMicroOp()->isMemBarrier())
     return instruction_queue_type::LOAD_QUEUE;
     
   if (microOp.getMicroOp()->isStore())
     return instruction_queue_type::MAIN_QUEUE;
   
   const IntPtr ip = microOp.getInstructionPointer().phys;
-  const UInt32 index = IP_TO_INDEX(ip), tag_offset = IP_TO_TAGOFF(ip);
+  const UInt32 index = ip_to_idx(ip), tag_offset = ip_to_tagoff(ip);
   for (unsigned int i = 0 ; i < NUM_WAYS ; ++i )
   {
     if (m_ways[i].m_tag_offset[index] == tag_offset)
