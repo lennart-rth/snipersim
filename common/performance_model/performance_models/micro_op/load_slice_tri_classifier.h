@@ -3,8 +3,6 @@
 
 #include "instruction_queue_classifier.h"
 
-#include <bitset>
-
 class LoadSliceTriClassifier : public InstructionQueueClassifier
 {
   UInt64 ip_to_idx(const IntPtr ip) const;
@@ -28,7 +26,6 @@ class LoadSliceTriClassifier : public InstructionQueueClassifier
   };
   
   std::vector<UInt64> producers, pending_deps;
-  std::bitset<instruction_queue_type::QUEUE_COUNT> pending_deps_not_cleared;
 
   void update(const IntPtr ip);
   UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;

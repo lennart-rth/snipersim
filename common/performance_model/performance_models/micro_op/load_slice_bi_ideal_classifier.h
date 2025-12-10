@@ -4,7 +4,6 @@
 #include "instruction_queue_classifier.h"
 
 #include <set>
-#include <bitset>
 
 class LoadSliceBiIdealClassifier : public InstructionQueueClassifier
 {
@@ -17,7 +16,6 @@ class LoadSliceBiIdealClassifier : public InstructionQueueClassifier
   };
   
   std::vector<UInt64> producers, pending_deps;
-  std::bitset<instruction_queue_type::QUEUE_COUNT> pending_deps_not_cleared;
   UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
 
 public:

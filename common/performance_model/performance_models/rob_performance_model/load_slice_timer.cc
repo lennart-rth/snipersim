@@ -181,6 +181,12 @@ LoadSliceTimer::LoadSliceTimer(
       String name = String("instruction_queue_dispatch[") + itostr(i) + "]";
       registerStatsMetric("rob_timer", core->getId(), name, &m_instruction_queue_dispatch_count[i]);
    }
+   m_blocked_readied_loads_count.resize(this->instruction_queue_classifier->getNumQueues());
+   for(UInt64 i = 0; i < this->instruction_queue_classifier->getNumQueues(); ++i)
+   {
+      String name = String("blocked_readied_loads[") + itostr(i) + "]";
+      registerStatsMetric("rob_timer", core->getId(), name, &m_blocked_readied_loads_count[i]);
+   }
 
    if (m_mlp_histogram)
    {

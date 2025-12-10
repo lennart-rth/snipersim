@@ -22,7 +22,8 @@ LoadSliceTriClassifier::LoadSliceTriClassifier(const UInt64 ways, const UInt64 e
   , producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
   , m_entries(entries)
 {
-  LOG_ASSERT_ERROR(entries, "Number of entries must be greater than zero. Set ways to zero instead");
+  LOG_ASSERT_ERROR(entries, "Number of entries must be greater than zero.");
+  LOG_ASSERT_ERROR(ways, "Number of ways must be greater than zero.");
 }
 
 void LoadSliceTriClassifier::update(const IntPtr ip)
@@ -52,25 +53,6 @@ void LoadSliceTriClassifier::update(DynamicMicroOp &microOp, const RegisterDepen
 {
   const UInt64 instruction_queue_type = microOp.getInstructionQueueType();
   LOG_ASSERT_ERROR(instruction_queue_type < instruction_queue_type::QUEUE_COUNT, "MicroOp has invalid instruction queue type");
-  
-  if(pending_deps_not_cleared.test(instruction_queue_type)){
-    for(const UInt64 dep : pending_deps)
-      if(dep > lowestValidSequenceNumber)
-        microOp.addDependency(dep);
-    pending_deps_not_cleared.reset(instruction_queue_type);
-  }
-
-  if(microOp.getMicroOp()->isLoad()){
-    for(unsigned int i = 0; i < microOp.getMicroOp()->getAddressRegistersLength(); ++i)
-    {
-      dl::Decoder::decoder_reg reg = microOp.getMicroOp()->getAddressRegister(i);
-      LOG_ASSERT_ERROR(reg < Sim()->getDecoder()->last_reg(), "address register src[%u] = %u is invalid", i, reg);
-      const UInt64 addressProducer = peekProducer(microOp.getMicroOp()->getAddressRegister(i));
-      if(addressProducer != INVALID_ADDRESS)
-        update(addressProducer);
-    }
-    return;
-  }
 
   if(microOp.getMicroOp()->isStore()){
     pending_deps.clear();
@@ -90,9 +72,24 @@ void LoadSliceTriClassifier::update(DynamicMicroOp &microOp, const RegisterDepen
         pending_deps.push_back(addressProducer);
     }
 
-    if (pending_deps.size()){
-      pending_deps_not_cleared.set();
-      pending_deps_not_cleared.reset(instruction_queue_type::MAIN_QUEUE);
+    return;
+  }
+
+  if(microOp.getMicroOp()->isLoad()){
+
+    for(const UInt64 dep : pending_deps)
+      if(dep > lowestValidSequenceNumber)
+        microOp.addDependency(dep);
+    
+    pending_deps.clear();
+
+    for(unsigned int i = 0; i < microOp.getMicroOp()->getAddressRegistersLength(); ++i)
+    {
+      dl::Decoder::decoder_reg reg = microOp.getMicroOp()->getAddressRegister(i);
+      LOG_ASSERT_ERROR(reg < Sim()->getDecoder()->last_reg(), "address register src[%u] = %u is invalid", i, reg);
+      const UInt64 addressProducer = peekProducer(microOp.getMicroOp()->getAddressRegister(i));
+      if(addressProducer != INVALID_ADDRESS)
+        update(addressProducer);
     }
 
     return;
@@ -147,6 +144,7 @@ UInt64 LoadSliceTriClassifier::predict(const DynamicMicroOp &microOp) const
 void LoadSliceTriClassifier::clear()
 {
   std::fill(producers.begin(), producers.end(), INVALID_ADDRESS);
+  pending_deps.clear();
 }
 
 UInt64 LoadSliceTriClassifier::peekProducer(const dl::Decoder::decoder_reg reg) const {
