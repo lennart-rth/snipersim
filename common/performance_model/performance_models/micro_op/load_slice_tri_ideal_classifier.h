@@ -20,6 +20,7 @@ class LoadSliceTriIdealClassifier : public InstructionQueueClassifier
   UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
 
 public:
+  LoadSliceTriIdealClassifier();
   UInt64 predict(const DynamicMicroOp &microOp) const override;
   void update(DynamicMicroOp &microOp, const RegisterDependencies& reg_dep, const uint64_t lowestValidSequenceNumber) override;
   UInt64 getNumQueues() const override;

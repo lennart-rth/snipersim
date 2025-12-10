@@ -3,6 +3,10 @@
 #include "log.h"
 #include "dynamic_micro_op.h"
 
+LoadSliceTriIdealClassifier::LoadSliceTriIdealClassifier()
+  : producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
+{}
+
 void LoadSliceTriIdealClassifier::update(DynamicMicroOp &microOp, const RegisterDependencies& reg_dep, const uint64_t lowestValidSequenceNumber)
 {
   const UInt64 instruction_queue_type = microOp.getInstructionQueueType();
