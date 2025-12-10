@@ -28,6 +28,7 @@ LoadSliceTimer::LoadSliceTimer(
 , scoreBoard(256)
 , mainQueue(256)
 , bypassQueue(256)
+, agiQueue(256)
 , mispredictionPenalty(8)
 , bypassLoads(Sim()->getCfg()->getBool("perf_model/core/load_slice_timer/bypass_loads"))
 , bypassStores(Sim()->getCfg()->getBool("perf_model/core/load_slice_timer/bypass_stores"))
@@ -47,6 +48,13 @@ LoadSliceTimer::LoadSliceTimer(
     countBypassLoads = 0;
     countBypassStores = 0;
     countBypassGenerators = 0;
+
+    stallLoadDep = 0;
+    stallLoadTime = 0;
+    stallStoreDep = 0;
+    stallStoreTime = 0;
+    stallAgiDep = 0;
+    stallAgiTime = 0;
 }
 
 LoadSliceTimer::~LoadSliceTimer() {
@@ -182,7 +190,7 @@ void LoadSliceTimer::dispatch() {
         }
 
         // one of the queues is full
-        if (bypassQueue.full() || mainQueue.full()) {
+        if (bypassQueue.full() || mainQueue.full() || agiQueue.full()) {
             break;
         }
         
@@ -200,8 +208,18 @@ void LoadSliceTimer::dispatch() {
             entry->isReady = true;
         }
 
-        // push to the queue
-        if (shouldBypass(entry)) {
+        // push to agi queue
+        if (bypassGenerators && entry->uop->isAddressGenerating()) {
+            countBypassGenerators++;
+            agiQueue.push(entry);
+        }
+        // push to bypass queue
+        else if ((bypassLoads && entry->uop->getMicroOp()->isLoad()) || 
+                (bypassStores && entry->uop->getMicroOp()->isStore())) {
+            
+            if (entry->uop->getMicroOp()->isLoad()) countBypassLoads++;
+            if (entry->uop->getMicroOp()->isStore()) countBypassStores++;
+            
             bypassQueue.push(entry);
         }
         else {
@@ -223,22 +241,53 @@ void LoadSliceTimer::issue() {
     int issueCount = 0;
     nextIssue = SubsecondTime::MaxTime();
     // issue from bypass queue or main queue depending on the age
-    while (issueCount < issueWidth && (!bypassQueue.empty() || !mainQueue.empty())) {
+    while (issueCount < issueWidth && (!bypassQueue.empty() || !mainQueue.empty() || !agiQueue.empty())) {
         // list of candidates
-        ScoreBoardEntry *candidates[2];
-        // bypass queue has a candidate
-        if (!bypassQueue.empty()) {
-            candidates[0] = bypassQueue.front();
+        ScoreBoardEntry *candidates[3];
+
+        candidates[0] = !bypassQueue.empty() ? bypassQueue.front() : NULL; // bypass queue has a candidate
+        candidates[1] = !mainQueue.empty()   ? mainQueue.front()   : NULL; // main queue has a candidate
+        candidates[2] = !agiQueue.empty()    ? agiQueue.front()    : NULL; // agi queue has a candidate
+
+        // Keep track of the reason for a bypass queue stall
+        if (candidates[0] != NULL && (!candidates[0]->isReady || candidates[0]->readyToIssue > now)) {
+            
+            bool isLoad = candidates[0]->uop->getMicroOp()->isLoad();
+            bool isStore = !isLoad && candidates[0]->uop->getMicroOp()->isStore();
+            bool isAGI = !isLoad && !isStore && candidates[0]->uop->isAddressGenerating();
+
+            if (!candidates[0]->isReady) {
+                // Dependency Stalls
+                if (isLoad) stallLoadDep++;
+                else if (isStore) stallStoreDep++;
+                else if (isAGI) stallAgiDep++;
+            } 
+            else {
+                // Time Stalls
+                if (isLoad) stallLoadTime++;
+                else if (isStore) stallStoreTime++;
+                else if (isAGI) stallAgiTime++;
+            }
         }
-        else {
-            candidates[0] = NULL;
-        }
-        // main queue has a candidate
-        if (!mainQueue.empty()) {
-            candidates[1] = mainQueue.front();
-        }
-        else {
-            candidates[1] = NULL;
+
+        if (candidates[2] != NULL && (!candidates[2]->isReady || candidates[2]->readyToIssue > now)) {
+            
+            bool isLoad = candidates[2]->uop->getMicroOp()->isLoad();
+            bool isStore = !isLoad && candidates[2]->uop->getMicroOp()->isStore();
+            bool isAGI = !isLoad && !isStore && candidates[2]->uop->isAddressGenerating();
+
+            if (!candidates[2]->isReady) {
+                // Dependency Stalls
+                if (isLoad) stallLoadDep++;
+                else if (isStore) stallStoreDep++;
+                else if (isAGI) stallAgiDep++;
+            } 
+            else {
+                // Time Stalls
+                if (isLoad) stallLoadTime++;
+                else if (isStore) stallStoreTime++;
+                else if (isAGI) stallAgiTime++;
+            }
         }
 
         // choose entry to be issued
@@ -272,8 +321,11 @@ void LoadSliceTimer::issue() {
         if (entry == candidates[0]) {
             bypassQueue.pop();
         }
-        if (entry == candidates[1]) {
+        else if (entry == candidates[1]) {
             mainQueue.pop();
+        }
+        else if (entry == candidates[2]) {
+            agiQueue.pop();
         }
     }
 }
@@ -392,6 +444,15 @@ void LoadSliceTimer::print() {
             entry->uop->getMicroOp()->getInstruction() ? entry->uop->getMicroOp()->getInstruction()->getDisassembly().c_str() : "?"
         );
     }
+    printf("agiQueue: size=%d\n", agiQueue.size());
+    for (ScoreBoardEntry *entry : agiQueue) {
+        printf("%d\t%d\t%d\t%s\n",
+            entry->uop->getSequenceNumber(),
+            entry->uop->getDependenciesLength(),
+            entry->isReady ? SubsecondTime::divideRounded(entry->readyToIssue, now.getPeriod()) : -1,
+            entry->uop->getMicroOp()->getInstruction() ? entry->uop->getMicroOp()->getInstruction()->getDisassembly().c_str() : "?"
+        );
+    }
     printf("mainQueue: size=%d\n", mainQueue.size());
     for (ScoreBoardEntry *entry : mainQueue) {
         printf("%d\t%d\t%d\t%s\n",
@@ -417,4 +478,11 @@ void LoadSliceTimer::disable() {
     printf("countBypassLoads=%llu\n", countBypassLoads);
     printf("countBypassStores=%llu\n", countBypassStores);
     printf("countBypassGeenerators=%llu\n", countBypassGenerators);
+
+    printf("stallLoadDep=%llu\n", stallLoadDep);
+    printf("stallLoadTime=%llu\n", stallLoadTime);
+    printf("stallStoreDep=%llu\n", stallStoreDep);
+    printf("stallStoreTime=%llu\n", stallStoreTime);
+    printf("stallAgiDep=%llu\n", stallAgiDep);
+    printf("stallAgiTime=%llu\n", stallAgiTime);
 }

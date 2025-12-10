@@ -42,6 +42,7 @@ class LoadSliceTimer {
         CircularQueue<ScoreBoardEntry> scoreBoard;
         CircularQueue<ScoreBoardEntry*> mainQueue;
         CircularQueue<ScoreBoardEntry*> bypassQueue;
+        CircularQueue<ScoreBoardEntry*> agiQueue;
 
         const int dispatchWidth;
         const int issueWidth;
@@ -56,6 +57,13 @@ class LoadSliceTimer {
         uint64_t countBypassLoads;
         uint64_t countBypassStores;
         uint64_t countBypassGenerators;
+
+        uint64_t stallLoadDep;
+        uint64_t stallLoadTime;
+        uint64_t stallStoreDep;
+        uint64_t stallStoreTime;
+        uint64_t stallAgiDep;
+        uint64_t stallAgiTime;
 
         uint64_t nextSequenceNumber;
         uint64_t headSequenceNumber;
