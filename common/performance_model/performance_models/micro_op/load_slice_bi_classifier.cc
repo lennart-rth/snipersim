@@ -27,6 +27,15 @@ LoadSliceBiClassifier::LoadSliceBiClassifier(const UInt64 ways, const UInt64 ent
   LOG_ASSERT_ERROR(ways, "Number of ways must be greater than zero.");
 }
 
+void LoadSliceBiClassifier::applyPendingDeps(DynamicMicroOp &microOp, const uint64_t lowestValidSequenceNumber)
+{
+  for(const UInt64 dep : pending_deps)
+    if(dep > lowestValidSequenceNumber)
+      microOp.addDependency(dep);
+  
+  pending_deps.clear();
+}
+
 void LoadSliceBiClassifier::update(const IntPtr ip)
 {
   UInt32 lru_way = 0;
@@ -76,13 +85,8 @@ void LoadSliceBiClassifier::update(DynamicMicroOp &microOp, const RegisterDepend
     return;
   }
 
-  for(const UInt64 dep : pending_deps)
-    if(dep > lowestValidSequenceNumber)
-      microOp.addDependency(dep);
-  
-  pending_deps.clear();
-
   if(microOp.getMicroOp()->isLoad()){
+    applyPendingDeps(microOp, lowestValidSequenceNumber);
     for(unsigned int i = 0; i < microOp.getMicroOp()->getAddressRegistersLength(); ++i)
     {
       dl::Decoder::decoder_reg reg = microOp.getMicroOp()->getAddressRegister(i);
@@ -105,6 +109,8 @@ void LoadSliceBiClassifier::update(DynamicMicroOp &microOp, const RegisterDepend
 
   if(instruction_queue_type == instruction_queue_type::MAIN_QUEUE || microOp.getMicroOp()->isMemBarrier())
     return;
+    
+  applyPendingDeps(microOp, lowestValidSequenceNumber);
   
   update(microOp.getInstructionPointer().phys);
 

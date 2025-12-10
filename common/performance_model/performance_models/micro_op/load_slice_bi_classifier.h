@@ -30,6 +30,7 @@ class LoadSliceBiClassifier : public InstructionQueueClassifier
 
   void update(const IntPtr ip);
   UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
+  void applyPendingDeps(DynamicMicroOp &microOp, const uint64_t lowestValidSequenceNumber);
 
 public:
   LoadSliceBiClassifier(const UInt64 ways, const UInt64 entries);

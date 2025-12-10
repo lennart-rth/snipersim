@@ -7,6 +7,15 @@ LoadSliceBiIdealClassifier::LoadSliceBiIdealClassifier()
   : producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
 {}
 
+void LoadSliceBiIdealClassifier::applyPendingDeps(DynamicMicroOp &microOp, const uint64_t lowestValidSequenceNumber)
+{
+  for(const UInt64 dep : pending_deps)
+    if(dep > lowestValidSequenceNumber)
+      microOp.addDependency(dep);
+  
+  pending_deps.clear();
+}
+
 void LoadSliceBiIdealClassifier::update(DynamicMicroOp &microOp, const RegisterDependencies& reg_dep, const uint64_t lowestValidSequenceNumber)
 {
   const UInt64 instruction_queue_type = microOp.getInstructionQueueType();
@@ -33,13 +42,8 @@ void LoadSliceBiIdealClassifier::update(DynamicMicroOp &microOp, const RegisterD
     return;
   }
 
-  for(const UInt64 dep : pending_deps)
-    if(dep > lowestValidSequenceNumber)
-      microOp.addDependency(dep);
-  
-  pending_deps.clear();
-
   if(microOp.getMicroOp()->isLoad()){
+    applyPendingDeps(microOp, lowestValidSequenceNumber);
     for(unsigned int i = 0; i < microOp.getMicroOp()->getAddressRegistersLength(); ++i)
     {
       dl::Decoder::decoder_reg reg = microOp.getMicroOp()->getAddressRegister(i);
@@ -62,6 +66,8 @@ void LoadSliceBiIdealClassifier::update(DynamicMicroOp &microOp, const RegisterD
 
   if(instruction_queue_type == instruction_queue_type::MAIN_QUEUE || microOp.getMicroOp()->isMemBarrier())
     return;
+    
+  applyPendingDeps(microOp, lowestValidSequenceNumber);
 
   for (uint32_t i = 0; i < microOp.getMicroOp()->getSourceRegistersLength(); i++)
   {

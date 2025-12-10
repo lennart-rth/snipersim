@@ -17,6 +17,7 @@ class LoadSliceBiIdealClassifier : public InstructionQueueClassifier
   
   std::vector<UInt64> producers, pending_deps;
   UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
+  void applyPendingDeps(DynamicMicroOp &microOp, const uint64_t lowestValidSequenceNumber);
 
 public:
   LoadSliceBiIdealClassifier();
