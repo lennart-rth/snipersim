@@ -17,6 +17,8 @@
 #include "load_slice_bi_classifier.h"
 #include "load_slice_tri_classifier.h"
 #include "load_slice_bi_ideal_classifier.h"
+#include "load_slice_tri_ideal_classifier.h"
+#include "load_slice_only_load_classifier.h"
 
 #include <iostream>
 #include <sstream>
@@ -37,6 +39,10 @@ static InstructionQueueClassifier* select_instruction_queue_classifier(const Str
       return new LoadSliceTriClassifier(ways, entries);
    else if (type == "bi_ideal")
       return new LoadSliceBiIdealClassifier();
+   else if (type == "tri_ideal")
+      return new LoadSliceTriIdealClassifier();
+   else if (type == "only_load")
+      return new LoadSliceOnlyLoadClassifier();
    
    LOG_PRINT_ERROR("Invalid instruction queue classifier type: %s", type.c_str());
    return NULL;
