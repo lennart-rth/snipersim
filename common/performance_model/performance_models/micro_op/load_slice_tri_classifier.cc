@@ -124,9 +124,6 @@ UInt64 LoadSliceTriClassifier::predict(const DynamicMicroOp &microOp) const
 {
   if (microOp.getMicroOp()->isLoad() || microOp.getMicroOp()->isMemBarrier())
     return instruction_queue_type::LOAD_QUEUE;
-    
-  if (microOp.getMicroOp()->isStore())
-    return instruction_queue_type::MAIN_QUEUE;
   
   const IntPtr ip = microOp.getInstructionPointer().phys;
   const UInt32 tag_offset = ip_to_tagoff(ip);
