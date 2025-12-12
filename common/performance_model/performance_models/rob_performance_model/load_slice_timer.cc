@@ -87,7 +87,9 @@ LoadSliceTimer::LoadSliceTimer(
             , Sim()->getCfg()->getIntArray("perf_model/core/loadslice/entries", core->getId())
          )
       )
+      , m_instruction_queue_dispatch_count(instruction_queue_classifier->getNumQueues(), 0)
       , perf(_perf)
+      , m_cpiInstructionQueue(instruction_queue_classifier->getNumQueues(), SubsecondTime::Zero())
       , m_cpiCurrentFrontEndStall(NULL)
       , m_mlp_histogram(Sim()->getCfg()->getBoolArray("perf_model/core/rob_timer/mlp_histogram", core->getId()))
 {
@@ -151,6 +153,13 @@ LoadSliceTimer::LoadSliceTimer(
       }
    }
 
+   // For IST-RDT implementation
+   for(UInt64 i = 0; i < this->instruction_queue_classifier->getNumQueues(); ++i)
+   {
+      String name = String("commit_blocked_by[") + instruction_queue_classifier->getQueueName(i) + "]";
+      registerStatsMetric("load_slice", core->getId(), name, &m_cpiInstructionQueue[i]);
+   }
+
    m_outstandingLongLatencyCycles = SubsecondTime::Zero();
    m_outstandingLongLatencyInsns = SubsecondTime::Zero();
    m_lastAccountedMemoryCycle = SubsecondTime::Zero();
@@ -181,17 +190,10 @@ LoadSliceTimer::LoadSliceTimer(
    }
 
    // For IST-RDT implementation
-   m_instruction_queue_dispatch_count.resize(this->instruction_queue_classifier->getNumQueues());
    for(UInt64 i = 0; i < this->instruction_queue_classifier->getNumQueues(); ++i)
    {
       String name = String("instruction_queue_dispatch[") + instruction_queue_classifier->getQueueName(i) + "]";
-      registerStatsMetric("rob_timer", core->getId(), name, &m_instruction_queue_dispatch_count[i]);
-   }
-   m_blocked_readied_loads_count.resize(this->instruction_queue_classifier->getNumQueues());
-   for(UInt64 i = 0; i < this->instruction_queue_classifier->getNumQueues(); ++i)
-   {
-      String name = String("blocked_readied_loads[") + instruction_queue_classifier->getQueueName(i) + "]";
-      registerStatsMetric("rob_timer", core->getId(), name, &m_blocked_readied_loads_count[i]);
+      registerStatsMetric("load_slice", core->getId(), name, &m_instruction_queue_dispatch_count[i]);
    }
 
    if (m_mlp_histogram)
@@ -493,8 +495,14 @@ SubsecondTime* LoadSliceTimer::findCpiComponent()
          return &m_cpiSerialization;
       else if (uop->getMicroOp()->isLoad() || uop->getMicroOp()->isStore())
          return &m_cpiDataCache[uop->getDCacheHitWhere()];
-      else
-         return NULL;
+      else{
+         const UInt64 queue_type = uop->getInstructionQueueType();
+         LOG_ASSERT_ERROR(
+            queue_type < instruction_queue_classifier->getNumQueues(),
+            "Invalid instruction queue type %s for uop %s", queue_type, uop->getMicroOp()->toShortString().c_str()
+         );
+         return &m_cpiInstructionQueue[queue_type];
+      }
    }
    // No instruction is currently executing
    return NULL;
