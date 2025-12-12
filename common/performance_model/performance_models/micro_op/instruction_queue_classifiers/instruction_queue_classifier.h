@@ -12,6 +12,7 @@ public:
   virtual UInt64 getNumQueues() const = 0;
   virtual void issued(const DynamicMicroOp& microOp) = 0;
   virtual ~InstructionQueueClassifier() = default;
+  virtual const char * getQueueName(const UInt64 queueIdx) const = 0;
 };
 
 #endif // INSTRUCTION_QUEUE_CLASSIFIER_H

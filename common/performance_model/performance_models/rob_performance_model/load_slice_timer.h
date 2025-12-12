@@ -114,7 +114,7 @@ private:
    std::vector<uint64_t> m_producerInsDistance;
 
    // For IST-RDT implementation
-   std::vector<UInt64> m_instruction_queue_dispatch_count, m_blocked_readied_loads_count;
+   std::vector<UInt64> m_instruction_queue_dispatch_count;
 
    PerformanceModel *perf;
 
@@ -130,6 +130,8 @@ private:
    SubsecondTime m_cpiBranchPredictor;
    SubsecondTime m_cpiSerialization;
    SubsecondTime m_cpiRSFull;
+   // CPI compoenents per each queue (for IST-RDT)
+   std::vector<SubsecondTime> m_cpiInstructionQueue;
 
    std::vector<SubsecondTime> m_cpiInstructionCache;
    std::vector<SubsecondTime> m_cpiDataCache;

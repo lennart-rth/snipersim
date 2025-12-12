@@ -184,13 +184,13 @@ LoadSliceTimer::LoadSliceTimer(
    m_instruction_queue_dispatch_count.resize(this->instruction_queue_classifier->getNumQueues());
    for(UInt64 i = 0; i < this->instruction_queue_classifier->getNumQueues(); ++i)
    {
-      String name = String("instruction_queue_dispatch[") + itostr(i) + "]";
+      String name = String("instruction_queue_dispatch[") + instruction_queue_classifier->getQueueName(i) + "]";
       registerStatsMetric("rob_timer", core->getId(), name, &m_instruction_queue_dispatch_count[i]);
    }
    m_blocked_readied_loads_count.resize(this->instruction_queue_classifier->getNumQueues());
    for(UInt64 i = 0; i < this->instruction_queue_classifier->getNumQueues(); ++i)
    {
-      String name = String("blocked_readied_loads[") + itostr(i) + "]";
+      String name = String("blocked_readied_loads[") + instruction_queue_classifier->getQueueName(i) + "]";
       registerStatsMetric("rob_timer", core->getId(), name, &m_blocked_readied_loads_count[i]);
    }
 

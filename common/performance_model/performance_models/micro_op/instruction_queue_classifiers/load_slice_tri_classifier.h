@@ -3,6 +3,9 @@
 
 #include "instruction_queue_classifier.h"
 
+#include <vector>
+#include <array>
+
 class LoadSliceTriClassifier : public InstructionQueueClassifier
 {
   UInt64 ip_to_idx(const IntPtr ip) const;
@@ -24,7 +27,8 @@ class LoadSliceTriClassifier : public InstructionQueueClassifier
     MAIN_QUEUE,
     QUEUE_COUNT
   };
-  
+
+  std::array<const char *, QUEUE_COUNT> const queueNames;  
   std::vector<UInt64> producers, pending_deps;
 
   void update(const IntPtr ip);
@@ -37,6 +41,7 @@ public:
   UInt64 getNumQueues() const override;
   void issued(const DynamicMicroOp &microOp) override;
   void clear() override;
+  const char * getQueueName(const UInt64 queueIdx) const override;
 };
 
 #endif // __LOAD_SLICE_TRI_CLASSIFIER_TABLE_H

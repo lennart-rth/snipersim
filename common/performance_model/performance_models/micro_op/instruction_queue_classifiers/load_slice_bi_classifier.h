@@ -4,6 +4,7 @@
 #include "instruction_queue_classifier.h"
 
 #include <vector>
+#include <array>
 
 class LoadSliceBiClassifier : public InstructionQueueClassifier
 {
@@ -25,6 +26,8 @@ class LoadSliceBiClassifier : public InstructionQueueClassifier
     MAIN_QUEUE,
     QUEUE_COUNT
   };
+
+  std::array<const char *, QUEUE_COUNT> const queueNames;
   
   std::vector<UInt64> producers, pending_deps;
 
@@ -39,6 +42,7 @@ public:
   UInt64 getNumQueues() const override;
   void issued(const DynamicMicroOp &microOp) override;
   void clear() override;
+  const char * getQueueName(const UInt64 queueIdx) const override;
 };
 
 #endif // __LOAD_SLICE_BI_CLASSIFIER_TABLE_H

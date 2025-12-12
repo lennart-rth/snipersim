@@ -4,7 +4,8 @@
 #include "dynamic_micro_op.h"
 
 LoadSliceTriIdealClassifier::LoadSliceTriIdealClassifier()
-  : producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
+  : queueNames({ "LOAD_QUEUE", "AGI_QUEUE", "MAIN_QUEUE" })
+  , producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
 {}
 
 void LoadSliceTriIdealClassifier::update(DynamicMicroOp &microOp, const RegisterDependencies& reg_dep, const uint64_t lowestValidSequenceNumber)
@@ -110,4 +111,9 @@ UInt64 LoadSliceTriIdealClassifier::getNumQueues() const {
 
 void LoadSliceTriIdealClassifier::issued(const DynamicMicroOp &microOp) {
   // No action needed on issue for this classifier
+}
+
+const char * LoadSliceTriIdealClassifier::getQueueName(const UInt64 queueIdx) const {
+  LOG_ASSERT_ERROR(queueIdx < QUEUE_COUNT, "Invalid queue index: %lu", queueIdx);
+  return queueNames[queueIdx];
 }

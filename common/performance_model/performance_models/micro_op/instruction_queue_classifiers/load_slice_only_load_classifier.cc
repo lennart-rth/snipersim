@@ -3,6 +3,10 @@
 #include "log.h"
 #include "dynamic_micro_op.h"
 
+LoadSliceOnlyLoadClassifier::LoadSliceOnlyLoadClassifier()
+  : queueNames({ "LOAD_QUEUE", "MAIN_QUEUE" })
+{}
+
 void LoadSliceOnlyLoadClassifier::update(DynamicMicroOp &microOp, const RegisterDependencies& reg_dep, const uint64_t lowestValidSequenceNumber)
 {
   const UInt64 instruction_queue_type = microOp.getInstructionQueueType();
@@ -50,4 +54,9 @@ UInt64 LoadSliceOnlyLoadClassifier::getNumQueues() const {
 
 void LoadSliceOnlyLoadClassifier::issued(const DynamicMicroOp &microOp) {
   // No action needed on issue for this classifier
+}
+
+const char * LoadSliceOnlyLoadClassifier::getQueueName(const UInt64 queueIdx) const {
+  LOG_ASSERT_ERROR(queueIdx < QUEUE_COUNT, "Invalid queue index: %lu", queueIdx);
+  return queueNames[queueIdx];
 }

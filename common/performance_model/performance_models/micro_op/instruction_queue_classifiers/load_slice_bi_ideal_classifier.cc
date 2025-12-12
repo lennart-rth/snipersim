@@ -4,7 +4,8 @@
 #include "dynamic_micro_op.h"
 
 LoadSliceBiIdealClassifier::LoadSliceBiIdealClassifier()
-  : producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
+  : queueNames({ "BIPASS_QUEUE", "MAIN_QUEUE" })
+  , producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
 {}
 
 void LoadSliceBiIdealClassifier::applyPendingDeps(DynamicMicroOp &microOp, const uint64_t lowestValidSequenceNumber)
@@ -106,4 +107,9 @@ UInt64 LoadSliceBiIdealClassifier::getNumQueues() const {
 
 void LoadSliceBiIdealClassifier::issued(const DynamicMicroOp &microOp) {
   // No action needed on issue for this classifier
+}
+
+const char * LoadSliceBiIdealClassifier::getQueueName(const UInt64 queueIdx) const {
+  LOG_ASSERT_ERROR(queueIdx < QUEUE_COUNT, "Invalid queue index: %lu", queueIdx);
+  return queueNames[queueIdx];
 }

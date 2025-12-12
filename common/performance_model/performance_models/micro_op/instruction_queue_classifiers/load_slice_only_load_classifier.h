@@ -2,6 +2,7 @@
 #define __LOAD_SLICE_ONLY_LOAD_CLASSIFIER_TABLE_H
 
 #include "instruction_queue_classifier.h"
+#include <array>
 
 class LoadSliceOnlyLoadClassifier : public InstructionQueueClassifier
 { 
@@ -11,14 +12,17 @@ class LoadSliceOnlyLoadClassifier : public InstructionQueueClassifier
     QUEUE_COUNT
   };
 
+  std::array<const char *, QUEUE_COUNT> const queueNames;
   std::vector<UInt64> pending_deps;
 
 public:
+  LoadSliceOnlyLoadClassifier();
   UInt64 predict(const DynamicMicroOp &microOp) const override;
   void update(DynamicMicroOp &microOp, const RegisterDependencies& reg_dep, const uint64_t lowestValidSequenceNumber) override;
   UInt64 getNumQueues() const override;
   void issued(const DynamicMicroOp &microOp) override;
   void clear() override;
+  const char * getQueueName(const UInt64 queueIdx) const override;
 };
 
 #endif // __LOAD_SLICE_ONLY_LOAD_CLASSIFIER_TABLE_H

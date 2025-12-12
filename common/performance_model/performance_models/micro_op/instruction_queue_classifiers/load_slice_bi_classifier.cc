@@ -20,8 +20,9 @@ LoadSliceBiClassifier::Way::Way(const UInt64 entries)
 LoadSliceBiClassifier::LoadSliceBiClassifier(const UInt64 ways, const UInt64 entries)
   : m_ways(ways, entries)
   , m_lru_use_count(0)
-  , producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
   , m_entries(entries)
+  , queueNames({ "BIPASS_QUEUE", "MAIN_QUEUE" })
+  , producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
 {
   LOG_ASSERT_ERROR(entries, "Number of entries must be greater than zero.");
   LOG_ASSERT_ERROR(ways, "Number of ways must be greater than zero.");
@@ -163,4 +164,10 @@ UInt64 LoadSliceBiClassifier::getNumQueues() const {
 
 void LoadSliceBiClassifier::issued(const DynamicMicroOp &microOp) {
   // No action needed on issue for this classifier
+}
+
+
+const char * LoadSliceBiClassifier::getQueueName(const UInt64 queueIdx) const {
+  LOG_ASSERT_ERROR(queueIdx < QUEUE_COUNT, "Invalid queue index: %lu", queueIdx);
+  return queueNames[queueIdx];
 }
