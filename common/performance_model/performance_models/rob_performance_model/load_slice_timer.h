@@ -150,7 +150,10 @@ private:
 
    void execute(uint64_t& instructionsExecuted, SubsecondTime& latency);
    SubsecondTime doDispatch(SubsecondTime **cpiComponent);
-   SubsecondTime doIssue();
+   SubsecondTime issueByQueuePriority();
+   SubsecondTime issueByOldest();
+   static SubsecondTime (LoadSliceTimer::* selectIssue(const Core *const core))();
+   SubsecondTime (LoadSliceTimer::* const doIssue)();
    SubsecondTime doCommit(uint64_t& instructionsExecuted);
 
    void issueInstruction(uint64_t idx, SubsecondTime &next_event);
