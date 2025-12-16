@@ -21,6 +21,13 @@ class LoadSliceBiClassifier : public InstructionQueueClassifier
   UInt64 m_lru_use_count;
   const UInt64 m_entries;
 
+  std::vector<UInt64> producers, pending_deps;
+
+  void update(const IntPtr ip);
+  UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
+  void applyPendingDeps(DynamicMicroOp &microOp, const uint64_t lowestValidSequenceNumber);
+
+protected:
   enum instruction_queue_type {
     BIPASS_QUEUE = 0,
     MAIN_QUEUE,
@@ -28,12 +35,6 @@ class LoadSliceBiClassifier : public InstructionQueueClassifier
   };
 
   std::array<const char *, QUEUE_COUNT> const queueNames;
-  
-  std::vector<UInt64> producers, pending_deps;
-
-  void update(const IntPtr ip);
-  UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
-  void applyPendingDeps(DynamicMicroOp &microOp, const uint64_t lowestValidSequenceNumber);
 
 public:
   LoadSliceBiClassifier(const UInt64 ways, const UInt64 entries);

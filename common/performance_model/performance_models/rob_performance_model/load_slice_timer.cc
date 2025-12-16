@@ -19,6 +19,7 @@
 #include "load_slice_bi_ideal_classifier.h"
 #include "load_slice_tri_ideal_classifier.h"
 #include "load_slice_only_load_classifier.h"
+#include "load_slice_bi_adaptive_classifier.h"
 
 #include <iostream>
 #include <sstream>
@@ -54,6 +55,14 @@ static InstructionQueueClassifier* selectInstructionQueueClassifier(const Core *
 
    if (type == "only_load")
       return new LoadSliceOnlyLoadClassifier();
+
+   if (type == "bi_adaptive")
+      return new LoadSliceBiAdaptiveClassifier(
+         Sim()->getCfg()->getIntArray("perf_model/core/loadslice/classifier/ways", core->getId()), 
+         Sim()->getCfg()->getIntArray("perf_model/core/loadslice/classifier/entries", core->getId()), 
+         Sim()->getCfg()->getIntArray("perf_model/core/loadslice/classifier/l1_hit_threshold", core->getId()), 
+         Sim()->getCfg()->getIntArray("perf_model/core/loadslice/classifier/adapt_interval", core->getId())
+      );
    
    LOG_PRINT_ERROR("Invalid instruction queue classifier type: %s", type.c_str());
    return NULL;
@@ -900,6 +909,7 @@ SubsecondTime LoadSliceTimer::issueByQueuePriority()
                   #endif
                }
 
+               instruction_queue_classifier->issued(*uop);
 
                #ifdef ASSERT_SKIP
                   LOG_ASSERT_ERROR(will_skip == false, "Cycle would have been skipped but stuff happened");
@@ -1032,6 +1042,7 @@ SubsecondTime LoadSliceTimer::issueByOldest()
             #endif
          }
 
+         instruction_queue_classifier->issued(*uop);
 
          #ifdef ASSERT_SKIP
             LOG_ASSERT_ERROR(will_skip == false, "Cycle would have been skipped but stuff happened");

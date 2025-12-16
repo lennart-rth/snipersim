@@ -21,8 +21,8 @@ LoadSliceBiClassifier::LoadSliceBiClassifier(const UInt64 ways, const UInt64 ent
   : m_ways(ways, entries)
   , m_lru_use_count(0)
   , m_entries(entries)
-  , queueNames({ "BIPASS_QUEUE", "MAIN_QUEUE" })
   , producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
+  , queueNames({ "BIPASS_QUEUE", "MAIN_QUEUE" })
 {
   LOG_ASSERT_ERROR(entries, "Number of entries must be greater than zero.");
   LOG_ASSERT_ERROR(ways, "Number of ways must be greater than zero.");
