@@ -1,11 +1,12 @@
 #ifndef LOAD_SLICE_BI_ADAPTIVE_CLASSIFIER_H
 #define LOAD_SLICE_BI_ADAPTIVE_CLASSIFIER_H
 #include "load_slice_bi_classifier.h"
-
+#include <vector>
 class LoadSliceBiAdaptiveClassifier : public LoadSliceBiClassifier {
 
-  UInt64 l1_hits_;
-  const UInt64 l1_hit_threshold_, adapt_interval_;
+  std::vector<bool> l1_hit_window_;
+  UInt64 l1_hits_, l1_hit_window_front_;
+  const UInt64 l1_hit_threshold_;
 
 public:
 

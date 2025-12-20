@@ -3,9 +3,13 @@
 #include "log.h"
 #include "dynamic_micro_op.h"
 
+std::array<const char *, LoadSliceBiIdealClassifier::QUEUE_COUNT> const LoadSliceBiIdealClassifier::queueNames = {
+  "BIPASS_QUEUE",
+  "MAIN_QUEUE"
+};
+
 LoadSliceBiIdealClassifier::LoadSliceBiIdealClassifier()
-  : queueNames({ "BIPASS_QUEUE", "MAIN_QUEUE" })
-  , producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
+  : producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
 {}
 
 void LoadSliceBiIdealClassifier::applyPendingDeps(DynamicMicroOp &microOp, const uint64_t lowestValidSequenceNumber)

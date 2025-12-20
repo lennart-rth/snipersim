@@ -20,6 +20,7 @@
 #include "load_slice_tri_ideal_classifier.h"
 #include "load_slice_only_load_classifier.h"
 #include "load_slice_bi_adaptive_classifier.h"
+#include "load_slice_bi_ideal_adaptive_classifier.h"
 
 #include <iostream>
 #include <sstream>
@@ -60,6 +61,12 @@ static InstructionQueueClassifier* selectInstructionQueueClassifier(const Core *
       return new LoadSliceBiAdaptiveClassifier(
          Sim()->getCfg()->getIntArray("perf_model/core/loadslice/classifier/ways", core->getId()), 
          Sim()->getCfg()->getIntArray("perf_model/core/loadslice/classifier/entries", core->getId()), 
+         Sim()->getCfg()->getIntArray("perf_model/core/loadslice/classifier/l1_hit_threshold", core->getId()), 
+         Sim()->getCfg()->getIntArray("perf_model/core/loadslice/classifier/adapt_interval", core->getId())
+      );
+   
+   if (type == "bi_ideal_adaptive")
+      return new LoadSliceBiIdealAdaptiveClassifier(
          Sim()->getCfg()->getIntArray("perf_model/core/loadslice/classifier/l1_hit_threshold", core->getId()), 
          Sim()->getCfg()->getIntArray("perf_model/core/loadslice/classifier/adapt_interval", core->getId())
       );

@@ -9,17 +9,19 @@
 class LoadSliceBiIdealClassifier : public InstructionQueueClassifier
 {
   std::set<UInt64> agis;
+  std::vector<UInt64> producers, pending_deps;
+  
+  UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
+  void applyPendingDeps(DynamicMicroOp &microOp, const uint64_t lowestValidSequenceNumber);
 
+protected:
   enum instruction_queue_type {
     BIPASS_QUEUE = 0,
     MAIN_QUEUE,
     QUEUE_COUNT
   };
   
-  std::array<const char *, QUEUE_COUNT> const queueNames;
-  std::vector<UInt64> producers, pending_deps;
-  UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
-  void applyPendingDeps(DynamicMicroOp &microOp, const uint64_t lowestValidSequenceNumber);
+  static std::array<const char *, QUEUE_COUNT> const queueNames;
 
 public:
   LoadSliceBiIdealClassifier();
