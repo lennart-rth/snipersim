@@ -3,6 +3,10 @@
 #include "log.h"
 #include "dynamic_micro_op.h"
 
+std::array<const char *, LoadSliceTriClassifier::QUEUE_COUNT> const LoadSliceTriClassifier::queueNames = {
+  "LOAD_QUEUE", "AGI_QUEUE", "MAIN_QUEUE"
+};
+
 UInt64 LoadSliceTriClassifier::ip_to_idx(const IntPtr ip) const {
   return ip % m_entries;
 }
@@ -20,7 +24,6 @@ LoadSliceTriClassifier::LoadSliceTriClassifier(const UInt64 ways, const UInt64 e
   : m_ways(ways, entries)
   , m_lru_use_count(0)
   , m_entries(entries)
-  , queueNames({ "LOAD_QUEUE", "AGI_QUEUE", "MAIN_QUEUE" })
   , producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
 {
   LOG_ASSERT_ERROR(entries, "Number of entries must be greater than zero.");

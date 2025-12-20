@@ -21,6 +21,12 @@ class LoadSliceTriClassifier : public InstructionQueueClassifier
   UInt64 m_lru_use_count;
   const UInt64 m_entries;
 
+  std::vector<UInt64> producers, pending_deps;
+
+  void update(const IntPtr ip);
+  UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
+
+protected:
   enum instruction_queue_type {
     LOAD_QUEUE = 0,
     AGI_QUEUE,
@@ -28,11 +34,7 @@ class LoadSliceTriClassifier : public InstructionQueueClassifier
     QUEUE_COUNT
   };
 
-  std::array<const char *, QUEUE_COUNT> const queueNames;  
-  std::vector<UInt64> producers, pending_deps;
-
-  void update(const IntPtr ip);
-  UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
+  static std::array<const char *, QUEUE_COUNT> const queueNames;
 
 public:
   LoadSliceTriClassifier(const UInt64 ways, const UInt64 entries);

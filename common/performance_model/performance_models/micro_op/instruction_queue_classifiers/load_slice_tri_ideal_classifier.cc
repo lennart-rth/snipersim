@@ -3,9 +3,12 @@
 #include "log.h"
 #include "dynamic_micro_op.h"
 
+std::array<const char *, LoadSliceTriIdealClassifier::QUEUE_COUNT> const LoadSliceTriIdealClassifier::queueNames = {
+  "LOAD_QUEUE", "AGI_QUEUE", "MAIN_QUEUE"
+};
+
 LoadSliceTriIdealClassifier::LoadSliceTriIdealClassifier()
-  : queueNames({ "LOAD_QUEUE", "AGI_QUEUE", "MAIN_QUEUE" })
-  , producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
+  : producers(Sim()->getDecoder()->last_reg(), INVALID_ADDRESS)
 {}
 
 void LoadSliceTriIdealClassifier::update(DynamicMicroOp &microOp, const RegisterDependencies& reg_dep, const uint64_t lowestValidSequenceNumber)

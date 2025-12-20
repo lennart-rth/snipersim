@@ -7,7 +7,12 @@
 #include <array>
 
 class LoadSliceTriIdealClassifier : public InstructionQueueClassifier
-{ 
+{
+  std::vector<UInt64> producers, pending_deps;
+  std::set<UInt64> agis;
+  UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
+
+protected:
   enum instruction_queue_type {
     LOAD_QUEUE = 0,
     AGI_QUEUE,
@@ -15,11 +20,7 @@ class LoadSliceTriIdealClassifier : public InstructionQueueClassifier
     QUEUE_COUNT
   };
 
-  std::array<const char *, QUEUE_COUNT> const queueNames;
-  std::vector<UInt64> producers, pending_deps;
-  std::set<UInt64> agis;
-
-  UInt64 peekProducer(const dl::Decoder::decoder_reg reg) const;
+  static std::array<const char *, QUEUE_COUNT> const queueNames;
 
 public:
   LoadSliceTriIdealClassifier();

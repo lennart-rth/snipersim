@@ -34,7 +34,7 @@ protected:
     QUEUE_COUNT
   };
 
-  std::array<const char *, QUEUE_COUNT> const queueNames;
+  static std::array<const char *, QUEUE_COUNT> const queueNames;
 
 public:
   LoadSliceBiClassifier(const UInt64 ways, const UInt64 entries);
