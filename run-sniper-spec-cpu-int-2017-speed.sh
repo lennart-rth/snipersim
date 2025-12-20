@@ -3,10 +3,7 @@
 CONFIG=$1
 BENCH_DIR=$2
 RESULT_DIR=$3
-N_PROCS=$(nproc)
-
-. ./snipersim-venv/bin/activate
-cd snipersim
+N_PROCS=${4:-$(nproc)}
 
 for SUB_BENCH in $BENCH_DIR/*; do
   #if its not a directory, skip
